@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # run with steps: ./runMI.sh 1 allen or ./runMI.sh 2 merfish or ./runMI.sh 3 (mouse steps)
+cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
 
 k=4
 mSize=6

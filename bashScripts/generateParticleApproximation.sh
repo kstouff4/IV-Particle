@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
+
 # Examples:
 # YS Kim Atlas: ./generateParticleApproximation.sh -s True -z 2 -d kim -w 0.05 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/KimAtlas10um -r True
 # Allen: ./generateParticleApproximation.sh -s True -z 2 -d allen -w 0.1 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um -r True

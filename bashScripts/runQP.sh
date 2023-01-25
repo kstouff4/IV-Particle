@@ -16,7 +16,8 @@ do
 done
 
 
-cd /cis/home/kstouff4/Documents/MeshRegistration/
+cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
+#export PYTHON_PATH=/cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode/:$PYTHON_PATH
 
 newV="True" # set to True if using rescaleUnits() function from Younes
 
@@ -272,7 +273,7 @@ if [[ $geneProbs == "True" ]]; then
 
 
         merfish="S2R2"
-        fileTarg="${targDir}gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
+        fileTarg="${targDir}MI7_gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
         echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
         python3 -c "import cleanAtlasEstimation as ae; ae.solveThetaNonRigidNonProbability('$fileTemp','$fileTarg','$sd',diffeo=True,iters=20,sigmaKernel=$sigmaKernel,sigmaError=$sigmaError,sigmaIm=$sigmaIm,sigmaDist=$sigmaDist,newVer=1e-3,rigOnly=$rig,scaleStart=$ss,thresh=$thresh); quit()" >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
         echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt

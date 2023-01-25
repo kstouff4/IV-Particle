@@ -1,4 +1,5 @@
 #!/bin/bash
+cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
 
 inpathX='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/'
 inpathZ='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/Experiments/'
@@ -56,7 +57,7 @@ pref='_0600-0700'
 pref='_0700-0800'
 #python3 -c "import smootheBoundaries as sb; sb.stitchAllQuadrants('$inpathX','$inpathZ','$pref',$sigma,$margin,'$outpath',$nb_iter0,$nb_iter1,$NmaxI,$NpartI,$maxVal); quit()" >> $outpath${pref}_log3.txt
 
-pref='_0900-1000'
+pref='_0300-0400'
 python3 -c "import smootheBoundaries as sb; sb.stitchAllQuadrants('$inpathX','$inpathZ','$pref',$sigma,$margin,'$outpath',$nb_iter0,$nb_iter1,$NmaxI,$NpartI,$maxVal); quit()" >> $outpath${pref}_log3.txt
 
 fX01='/cis/home/kstouff4/Documents/MeshRegistration/Particles/KimAtlas10um/ZApprox-XComb/Sub__1100-1200_01_XnuX.npz'
