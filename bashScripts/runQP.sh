@@ -16,7 +16,7 @@ do
 done
 
 
-cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
+cd /cis/home/kstouff4/Documents/MeshRegistration/
 #export PYTHON_PATH=/cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode/:$PYTHON_PATH
 
 newV="True" # set to True if using rescaleUnits() function from Younes
@@ -179,7 +179,7 @@ fi
 
 if [[ $geneProbs == "True" ]]; then
     thresh=0.01
-    sigmaKernel=1.0 # 0.5 # smoother diffeomorphisms
+    sigmaKernel=0.5 # 0.5 # smoother diffeomorphisms
     tempDir="/cis/home/kstouff4/Documents/MeshRegistration/TestImages/"
     resTemp=100
     resTarg=100 #50
@@ -198,6 +198,7 @@ if [[ $geneProbs == "True" ]]; then
         fi
         targDir="/cis/home/kstouff4/Documents/MeshRegistration/TestImages/Allen3DMeshes/"
     elif [[ $targetName == "merfish" ]]; then
+        sigmaIm=1.01 # changed just for saving in new folder 
         if [[ $atlasName == "kim" ]]; then
             prefix="KimToMerfishGeneTypeProbs/"
             fileTempP="${tempDir}Yongsoo/KimLabDevCCFv001_Annotations_ASL_Oriented_10um_ax0_" #${allen}_mesh100_rz.vtk"
@@ -252,25 +253,24 @@ if [[ $geneProbs == "True" ]]; then
         allen="sl889"
         fileTemp="${fileTempP}${allen}_mesh${resTemp}_rz.vtk"
         merfish="S1R2"
-        fileTarg="${targDir}gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
-        #echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
-        #python3 -c "import cleanAtlasEstimation as ae; ae.solveThetaNonRigidNonProbability('$fileTemp','$fileTarg','$sd',diffeo=True,iters=20,sigmaKernel=$sigmaKernel,sigmaError=$sigmaError,sigmaIm=$sigmaIm,sigmaDist=$sigmaDist,newVer=1e-3,rigOnly=$rig,scaleStart=$ss,thresh=$thresh); quit()" >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
-        #echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        fileTarg="${targDir}MI7_gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
+        echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        python3 -c "import cleanAtlasEstimation as ae; ae.solveThetaNonRigidNonProbability('$fileTemp','$fileTarg','$sd',diffeo=True,iters=20,sigmaKernel=$sigmaKernel,sigmaError=$sigmaError,sigmaIm=$sigmaIm,sigmaDist=$sigmaDist,newVer=1e-3,rigOnly=$rig,scaleStart=$ss,thresh=$thresh); quit()" >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
 
         merfish="S1R1"
-        fileTarg="${targDir}gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
-        #echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
-        #python3 -c "import cleanAtlasEstimation as ae; ae.solveThetaNonRigidNonProbability('$fileTemp','$fileTarg','$sd',diffeo=True,iters=20,sigmaKernel=$sigmaKernel,sigmaError=$sigmaError,sigmaIm=$sigmaIm,sigmaDist=$sigmaDist,newVer=1e-3,rigOnly=$rig,scaleStart=$ss,thresh=$thresh); quit()" >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
-        #echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        fileTarg="${targDir}MI7_gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
+        echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        python3 -c "import cleanAtlasEstimation as ae; ae.solveThetaNonRigidNonProbability('$fileTemp','$fileTarg','$sd',diffeo=True,iters=20,sigmaKernel=$sigmaKernel,sigmaError=$sigmaError,sigmaIm=$sigmaIm,sigmaDist=$sigmaDist,newVer=1e-3,rigOnly=$rig,scaleStart=$ss,thresh=$thresh); quit()" >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
 
         allen="sl674"
         fileTemp="${tempDir}Allen_10_anno_16bit_ap_ax2_${allen}_mesh${res}_rz.vtk"
         merfish="S2R1"
-        fileTarg="${targDir}gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
-        #echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
-        #python3 -c "import cleanAtlasEstimation as ae; ae.solveThetaNonRigidNonProbability('$fileTemp','$fileTarg','$sd',diffeo=True,iters=20,sigmaKernel=$sigmaKernel,sigmaError=$sigmaError,sigmaIm=$sigmaIm,sigmaDist=$sigmaDist,newVer=1e-3,rigOnly=$rig,scaleStart=$ss,thresh=$thresh); quit()" >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
-        #echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
-
+        fileTarg="${targDir}MI7_gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
+        echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        python3 -c "import cleanAtlasEstimation as ae; ae.solveThetaNonRigidNonProbability('$fileTemp','$fileTarg','$sd',diffeo=True,iters=20,sigmaKernel=$sigmaKernel,sigmaError=$sigmaError,sigmaIm=$sigmaIm,sigmaDist=$sigmaDist,newVer=1e-3,rigOnly=$rig,scaleStart=$ss,thresh=$thresh); quit()" >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
+        echo $(date) >> $sd/$atlasName${allen}_to_Merfish${merfish}_params$sigmaKernel$sigmaIm$sigmaDist$sigmaError$ss$thresh.txt
 
         merfish="S2R2"
         fileTarg="${targDir}MI7_gene_${merfish}_mesh${resTarg}avgRNAProbDist.vtk"
