@@ -22,7 +22,7 @@ mkdir $outPath
 mkdir $outPath'/XSplits/'
 
 outPathX=$outPath'/XSplits/'
-outPathZ=$outPath"/ZApprox-XComb_sig${sigma}/"
+outPathZ=$outPath"/ZApprox-XComb_sig${sigma}_new/"
 mkdir $outPathZ
 
 if [[ $dataset == "allen" ]]; then
@@ -101,7 +101,7 @@ for f in ${fils[*]}; do
     #python3 -c "import smootheBoundaries as sb; sb.stitchAllQuadrants('$outPathX','$outPathZ','$pref',$sigma,$margin,'$outPathZ',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV); quit()" >> ${outPathZ}_$pref.txt
 done
 
-python3 -c "import smootheBoundaries as sb; sb.stitchAllSlabs(['$outPathZ'],['$outPathZ'],'_0123_',$sigma,$margin,'$outPathZ',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()"
+#python3 -c "import smootheBoundaries as sb; sb.stitchAllSlabs(['$outPathZ'],['$outPathZ'],'_0123_',$sigma,$margin,'$outPathZ',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()"
 
-
+python3 -c "import smootheBoundaries as sb; sb.stitchTwoSlabs(['$outPathZ'],['$outPathZ'],'_0123_',$sigma,$margin,'$outPathZ',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()"
 

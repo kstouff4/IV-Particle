@@ -4,7 +4,7 @@ cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
 inpathX='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/'
 inpathZ='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/Experiments/'
 outpath='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/Experiments/Stitched/'
-outpath='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1/'
+outpath='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/'
 inpathX='/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/XSplits/'
 inpathZ=$outpath
 mkdir $outpath
