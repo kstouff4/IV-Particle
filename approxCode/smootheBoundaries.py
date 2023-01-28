@@ -1111,13 +1111,13 @@ def stitchTwoSlabs(inpathX,inpathZ,prefix,sigma,marginI,outpath,nb_iter0,nb_iter
     '''
     Example prefix is _0123_ with inpathX = /cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/Experiments/Stitched/Sub
     '''
-    pref = 2
-    slabsX = ['/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0600-0700_0123_XnuX.npz','/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0700-0800_0123_XnuX.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0800-0900_0123_XnuX.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0900-1000_0123_XnuX.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__1000-1100_0123_XnuX.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__1100-1200_0123_XnuX.npz']
-    slabsZ = ['/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0600-0700_0123_optimalZnu_ZAllwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz','/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0700-0800_0123_optimalZnu_ZAllwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0800-0900_0123_optimalZnu_ZAllwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__0900-1000_0123_optimalZnu_ZAllwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__1000-1100_0123_optimalZnu_ZAllwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz', '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub__1100-1200_0123_optimalZnu_ZAllwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz']
+    pref = 8
+    slabsX = ['/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub_8slabs_0-1_XnuX.npz','/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub_8slabs_2-3_XnuX.npz']
+    slabsZ = ['/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub_8slabs_0-1_optimalZnu_ZwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz','/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um/ZApprox-XComb_sig0.1_new/Sub_8slabs_2-3_optimalZnu_ZwC1.2_sig0.1_Nmax5000.0_Npart1000.0.npz']
     tempX = []
     tempZ = []
     for i in range(0,len(slabsX)-1,2):
-        combX01,combnuX01,combZ01,combnuZ01,fX01,fZ01 = stitchSlabs(slabsX[i],slabsX[i+1],slabsZ[i],slabsZ[i+1],outpath + 'Sub_' + str(pref) + 'slabs_' + str(i+8) + '-' + str(i+9),sigma,nb_iter0, nb_iter1, margin=marginI,Nmax=NmaxI,Npart=NpartI,maxV=maxVal,optMethod='LBFGS',ax=ax)
+        combX01,combnuX01,combZ01,combnuZ01,fX01,fZ01 = stitchSlabs(slabsX[i],slabsX[i+1],slabsZ[i],slabsZ[i+1],outpath + 'Sub_' + str(pref) + 'slabs_' + str(i) + '-' + str(i+1),sigma,nb_iter0, nb_iter1, margin=marginI,Nmax=NmaxI,Npart=NpartI,maxV=maxVal,optMethod='LBFGS',ax=ax)
         print("wrote " + fX01 + ", " + fZ01)
         tempX.append(fX01)
         tempZ.append(fZ01)
