@@ -1,8 +1,8 @@
 import ntpath
 from numba import jit, prange, int64
 from sys import path as sys_path
-sys_path.append('/cis/home/kstouff4/Documents/MeshRegistration/master/py-lddmm/')
-sys_path.append('/cis/home/kstouff4/Documents/MeshRegistration/master/py-lddmm/base')
+sys_path.append('/cis/home/kstouff4/Documents/MeshRegistration/MeshLDDMMQP/master-KMS/py-lddmm/')
+sys_path.append('/cis/home/kstouff4/Documents/MeshRegistration/MeshLDDMMQP/master-KMS/py-lddmm/base')
 sys_path.append('/cis/home/kstouff4/Documents/SurfaceTools/')
 import vtkFunctions as vtf
 import os
@@ -24,6 +24,11 @@ import imageio.v3 as iio
 import cv2
 import torch
 import numpy.matlib
+
+import pykeops
+import socket
+pykeops.set_build_folder("~/.cache/keops"+pykeops.__version__ + "_" + (socket.gethostname()))
+
 from pykeops.torch import Vi, Vj
 from pykeops.torch import LazyTensor
 from skimage.segmentation import watershed
@@ -43,9 +48,6 @@ from base.meshes import Mesh, buildMeshFromMerfishData
 from base.affineRegistration import rigidRegistration, rigidRegistration_varifold
 from base.meshMatching import MeshMatching, MeshMatchingParam
 from base.mesh_distances import varifoldNormDef
-import pykeops
-pykeops.clean_pykeops()
-plt.ion()
 
 from datetime import datetime
 import time
@@ -245,8 +247,14 @@ def splitParticles(particleFile,parts,ax0=True,ax1=True,ax2=True):
     split group of particles into # parts along each axis (same number of parts)
     '''
     particles = np.load(particleFile) # assume have X and nuX
-    oX = particles['X']
-    onuX = particles['nu_X']
+    if ('X' in particles.files):
+        oX = particles['X']
+        onuX = particles['nu_X']
+    elif ('Z' in particles.files):
+        oX = particles['Z']
+        onuX = particles['nu_Z']
+    else:
+        print("Didn't find X or Z")
     
     # get dim for each axis
     bounds = np.max(oX,axis=0) - np.min(oX,axis=0)
@@ -325,7 +333,22 @@ def getFiles(filePath,suff):
     print(filePath + '*' + suff)
     f = glob.glob(filePath + '*' + suff)
     print("number of files found is " + str(len(f)))
-    return f      
+    return f 
+
+def rescale(fileList, s=1e-3):
+    for f in fileList:
+        info = np.load(f)
+        if ('X' in info.files):
+            X = info['X']
+            X = s*X
+            np.savez(f,X=X,nu_X=info['nu_X'])
+        elif ('Z' in info.files):
+            Z = info['Z']
+            Z = s*Z
+            np.savez(f,Z=Z,nu_Z=info['nu_Z'])
+        else:
+            print("Z and X not in file")
+    return
 
 ### KATIE: FINISH #####
 def resampleWholeImage(imgFile,outpath,res=0.01,sig=0.1,C=1):

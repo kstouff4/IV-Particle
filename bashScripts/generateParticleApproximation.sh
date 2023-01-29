@@ -5,6 +5,7 @@ cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
 # Examples:
 # YS Kim Atlas: ./generateParticleApproximation.sh -s True -z 2 -d kim -w 0.05 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/KimAtlas10um -r True
 # Allen: ./generateParticleApproximation.sh -s True -z 2 -d allen -w 0.1 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um -r True
+# Allen3d: ./generateParticleApproximation.sh -s False -z 2 -d allen3d -w 0.025 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish -r False
 
 while getopts s:z:d:w:o:r: flag
 do
@@ -42,6 +43,10 @@ elif [[ $dataset == "kim" ]]; then
 
 elif [[ $dataset == "allen3d" ]]; then
     list="True"
+    atlasImage="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX/"
+    targetImage="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZApprox-XComb_sig25.0/"
+    outPathX=$outPath'/XnuX/'
+    outPathZ=$outPath"/ZApprox-XComb_sig${sigma}/"
 
 else
     # read in text file with parameters
@@ -63,7 +68,7 @@ if [[ $resampleOnly == "False" ]]; then
     if [[ $slabs == "True" ]]; then
         python3 -c "import estimateSubsample as ess; xfiles = ess.makeAllXandZ('$atlasImage','$outPathX', thickness=$thick, res=$res,sig=$sigma,C=-1,flip=$flip); ess.splitParticlesList(xfiles,2,ax0=True,ax1=True,ax2=False); quit()"
     elif [[ $list == "True" ]]; then
-        python3 -c "import estimateSubsample as ess; xfiles = ess.getFiles('$atlasImage','X.npz'); ess.splitParticlesList(xfiles,2,ax0=True,ax1=True,ax2=False); quit()"
+        python3 -c "import estimateSubsample as ess; xfiles = ess.getFiles('$atlasImage','X.npz');ess.rescale(xfiles,s=1e-3); ess.splitParticlesList(xfiles,2,ax0=True,ax1=True,ax2=False); zfiles=ess.getFiles('$targetImage','semidiscrete_plus0.05.npz'); ess.rescale(zfiles,s=1e-3);ess.splitParticlesList(zfiles,2,ax0=True,ax1=True,ax2=False);quit()"
     else
         python3 -c "import estimateSubsample as ess; ess.splitParticles('$atlasImage',2,ax0=True,ax1=True,ax2=False); quit()"
     fi
@@ -71,22 +76,23 @@ fi
 
 # Approximate Particles for each quadrant of each slab
 
-nb_iter0=3
-nb_iter1=10
+nb_iter0=4
+nb_iter1=15
 Nmax=5000.0
 Npart=1000.0
 optMethod="LBFGS"
 
 # look for all of the Quadrants in folder based on X's and generate all
+# This is for subsampling as well as approximating
 fils=$(find $outPathX | grep XnuX._ | grep npz )
 for f in ${fils[*]}; do
     pref="$(basename -- $f)"
     pref2=$(echo $pref | tr X Z)
     pref3=${pref2%.npz}
     outPref="${outPathZ}"
-    #echo $(date) >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
-    #python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,maxV=$maxV,optMethod='$optMethod');quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
-    #echo $(date) >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
+    echo $(date) >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
+    python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,maxV=$maxV,optMethod='$optMethod');quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
+    echo $(date) >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
 done
 
 # Stitch quadrants 
@@ -103,5 +109,5 @@ done
 
 #python3 -c "import smootheBoundaries as sb; sb.stitchAllSlabs(['$outPathZ'],['$outPathZ'],'_0123_',$sigma,$margin,'$outPathZ',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()"
 
-python3 -c "import smootheBoundaries as sb; sb.stitchTwoSlabs(['$outPathZ'],['$outPathZ'],'_0123_',$sigma,$margin,'$outPathZ',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()"
+#python3 -c "import smootheBoundaries as sb; sb.stitchTwoSlabs(['$outPathZ'],['$outPathZ'],'_0123_',$sigma,$margin,'$outPathZ',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()"
 

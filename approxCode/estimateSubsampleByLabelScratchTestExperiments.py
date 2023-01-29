@@ -81,6 +81,28 @@ def reverseOneHot(nu_Z,indsToKeep,maxVal=673):
     nnuZ = np.zeros((nu_Z.shape[0],maxVal))
     nnuZ[:,indsToKeep] = nu_Z
     return nnuZ
+
+def oneHotMemorySave(nu_X,nu_Z,zeroBased=False):
+    nonZeros = np.sum(nu_Z,axis=0) # values with 0 have no counts
+    x = np.unique(nu_X).astype(int)
+    if not zeroBased:
+        x = x-1
+        print("subtracting")
+    nonZeros[x] += 1
+    indsToKeep = np.where(nonZeros > 0)
+    nnu_Z = nu_Z[:,indsToKeep[0]]
+    return nnu_Z,indsToKeep[0]
+
+def groupXbyLabelSave(nuX,X,indsToKeep,zeroBased=False):
+    d = len(indsToKeep) # Z has all of possible labels
+    listOfX = []
+    iTK = indsToKeep
+    if (not zeroBased):
+        iTK += 1
+    for i in iTK:
+        listOfX.append(X[nuX == i])
+    return listOfX
+    
     
 
 def getXZ(npzX,npzZ):
@@ -91,12 +113,23 @@ def getXZ(npzX,npzZ):
     X = xInfo['X']
     print("numbers of X: " + str(X.shape[0]))
     zInfo = np.load(npzZ)
-    Z = zInfo['Z']
+    if ('Z' in zInfo.files):
+        Z = zInfo['Z']
+        nu_Z,indsToKeep = oneHotMemorySave(xInfo['nu_X'],zInfo['nu_Z'],zeroBased=True)
+    elif ('X' in zInfo.files):
+        Z = zInfo['X']
+        nu_Z,indsToKeep = oneHotMemorySave(xInfo['nu_X'],zInfo['nu_X'],zeroBased=True)
+    else:
+        print("Z or X not found in Z file")
     print("numbers of Z: " + str(Z.shape[0]))
+    '''
+    # Trying Memory work around #
     nu_X, nu_Z,indsToKeep = oneHot(xInfo['nu_X'],zInfo['nu_Z'])
     Xlist = groupXbyLabel(nu_X,X)
+    '''
+    Xlist = groupXbyLabelSave(xInfo['nu_X'],X,indsToKeep,zeroBased=True)
 
-    return Xlist,Z,nu_Z,indsToKeep,X,nu_X
+    return Xlist,Z,nu_Z,indsToKeep,X, []
 
 def returnToInt(oneHotEncode):
     d = oneHotEncode.shape[-1]
@@ -127,7 +160,7 @@ def getXZInt(npzX,npzZ):
     return X,nu_X,Z,nu_Z,indsToKeep,d
 
 
-def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0,Zfile=None,maxV=673,optMethod='LBFGS'):
+def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0,Zfile=None,maxV=673,optMethod='LBFGS',C=1.2):
     '''
     Find and optimize subsample of points for X,nu_X defined by volume of X and sigma
     
@@ -144,7 +177,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     OptMethods = LBFGS or Adam (less memory intensive)
     '''
     st = time.time()
-    C=1.2
+    #C=1.2
     sig = sigma
     lossTrack = []
     
@@ -403,6 +436,9 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     # get X and Z
     if (Zfile is not None):
         Xlist,Z,nu_Z,indsToKeep,X,nu_X = getXZ(Xfile,Zfile)
+        # write original Z 
+        maxInd = np.argmax(nu_Z,axis=-1)+1
+        vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],outpath+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '.vtk',polyData=None)
     else:
         xInfo = np.load(Xfile)
         X = xInfo['X']
@@ -575,14 +611,29 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
 
     # Display of the result (in reduced integer set)
     maxInd = np.argmax(nnu_Z,axis=-1)+1
-    vtf.writeVTK(nZ,[maxInd,np.sum(nnu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],outpath+'_optimalZnu_ZAllwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) +'.vtk',polyData=None)
-    np.savez(outpath+'_optimalZnu_ZAllwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) +'.npz',Z=nZ, nu_Z=nnu_Z)
+    nuZN = nnu_Z / (np.sum(nnu_Z,axis=-1)[...,None])
+    h = nuZN*np.log(nuZN,where=(nuZN > 0))
+    h = np.sum(h,axis=-1)
+    h = -h
     
+    geneInds = np.arange(nnu_Z.shape[-1]).astype(int)
+    geneInds = list(geneInds)
+    geneIndNames = []
+    geneProbs = []
+    for g in geneInds:
+        geneIndNames.append(str(g))
+        geneProbs.append(nnu_Z[:,g])
+    vtf.writeVTK(nZ,[maxInd,np.sum(nnu_Z,axis=-1),h],['MAX_VAL_NU','TOTAL_MASS','ENTROPY'],outpath+'_optimalZnu_ZAllwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) +'.vtk',polyData=None)
+    vtf.writeVTK(nZ,geneProbs,geneIndNames,outpath+'_optimalZnu_ZAllwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) +'_allComponents.vtk',polyData=None)
+    np.savez(outpath+'_optimalZnu_ZAllwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) +'.npz',Z=nZ, nu_Z=nnu_Z,h=h)
+    
+    '''
     nZ = nZ[c,:]
     nnu_Z = nnu_Z[c,:]
     maxInd = np.argmax(nnu_Z,axis=-1)+1
     vtf.writeVTK(nZ,[maxInd,np.sum(nnu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],outpath+'_optimalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) +'.vtk',polyData=None)
     np.savez(outpath+'_optimalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) +'.npz',Z=nZ, nu_Z=nnu_Z)
+    '''
 
     # remove to see if release memory 
     f,ax = plt.subplots()
