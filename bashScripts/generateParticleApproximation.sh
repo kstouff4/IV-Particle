@@ -5,7 +5,7 @@ cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
 # Examples:
 # YS Kim Atlas: ./generateParticleApproximation.sh -s True -z 2 -d kim -w 0.05 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/KimAtlas10um -r True
 # Allen: ./generateParticleApproximation.sh -s True -z 2 -d allen -w 0.1 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenAtlas10um -r True
-# Allen3d: ./generateParticleApproximation.sh -s False -z 2 -d allen3d -w 0.025 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish -r False
+# Allen3d: ./generateParticleApproximation.sh -s False -z 2 -d allen3d -w 0.025 -o /cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish -r True
 
 while getopts s:z:d:w:o:r: flag
 do
@@ -23,7 +23,7 @@ mkdir $outPath
 mkdir $outPath'/XSplits/'
 
 outPathX=$outPath'/XSplits/'
-outPathZ=$outPath"/ZApprox-XComb_sig${sigma}_new/"
+outPathZ=$outPath"/ZApprox-XComb_sig${sigma}/"
 mkdir $outPathZ
 
 if [[ $dataset == "allen" ]]; then
@@ -47,6 +47,8 @@ elif [[ $dataset == "allen3d" ]]; then
     targetImage="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZApprox-XComb_sig25.0/"
     outPathX=$outPath'/XnuX/'
     outPathZ=$outPath"/ZApprox-XComb_sig${sigma}/"
+    zname="originalZnu_ZwC1.0_sig25.0_semidiscrete_plus0.05"
+    maxV=702
 
 else
     # read in text file with parameters
@@ -91,7 +93,11 @@ for f in ${fils[*]}; do
     pref3=${pref2%.npz}
     outPref="${outPathZ}"
     echo $(date) >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
-    python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,maxV=$maxV,optMethod='$optMethod');quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
+    if [[ $dataset == "allen3d" ]]; then
+        python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,Zfile='${f/XnuX/$zname}',maxV=$maxV,optMethod='$optMethod',C=1.0);quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
+    else
+        python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,maxV=$maxV,optMethod='$optMethod');quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
+    fi
     echo $(date) >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
 done
 

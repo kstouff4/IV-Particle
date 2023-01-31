@@ -2,11 +2,11 @@
 
 cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
 
-outPathX="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX/_201_XnuX._"
+outPathX="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX/_202_XnuX._"
 sigma=25.0 # micron units 
-outPathZ="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZApprox-XComb_sig${sigma}/"
-mkdir $outPathZ
-outPathZ="${outPathZ}_201_"
+outPathZO="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZApprox-XComb_sig${sigma}/"
+mkdir $outPathZO
+outPathZ="${outPathZO}_203_"
 
 # Optimization Parameters 
 nb_iter0=4
@@ -17,7 +17,7 @@ optMethod="LBFGS"
 maxV=702
 C=1.0
 
-inds=(0)
+inds=(0 1 2 3)
 sigma=0.025 # assume rescaled 
 for i in ${inds[*]}; do
     #echo $(date) >> "${outPathZ}Discrete_C1.0.txt"
@@ -28,4 +28,28 @@ for i in ${inds[*]}; do
     python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$outPathX${i}.npz',$sigma, $nb_iter0, $nb_iter1,'${outPathZ}Semidiscrete_${i}_',$Nmax,$Npart,Zfile='${outPathZ}originalZnu_ZwC1.0_sig25.0_semidiscrete_plus0.05._${i}.npz',maxV=$maxV,optMethod='$optMethod',C=$C);quit()" >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
     echo $(date) >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
 done
+
+outPathX="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX/_203_XnuX._"
+outPathZ="${outPathZO}_204_"
+
+inds=(0 1 2 3)
+sigma=0.025 # assume rescaled 
+for i in ${inds[*]}; do
+    echo $(date) >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
+    python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$outPathX${i}.npz',$sigma, $nb_iter0, $nb_iter1,'${outPathZ}Semidiscrete_${i}_',$Nmax,$Npart,Zfile='${outPathZ}originalZnu_ZwC1.0_sig25.0_semidiscrete_plus0.05._${i}.npz',maxV=$maxV,optMethod='$optMethod',C=$C);quit()" >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
+    echo $(date) >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
+done
+
+outPathX="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX/_204_XnuX._"
+outPathZ="${outPathZO}_205_"
+
+inds=(0 1 2 3)
+sigma=0.025 # assume rescaled 
+for i in ${inds[*]}; do
+    echo $(date) >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
+    python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$outPathX${i}.npz',$sigma, $nb_iter0, $nb_iter1,'${outPathZ}Semidiscrete_${i}_',$Nmax,$Npart,Zfile='${outPathZ}originalZnu_ZwC1.0_sig25.0_semidiscrete_plus0.05._${i}.npz',maxV=$maxV,optMethod='$optMethod',C=$C);quit()" >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
+    echo $(date) >> "${outPathZ}Semidiscrete_C1.0_${i}.txt"
+done
+
+
 
