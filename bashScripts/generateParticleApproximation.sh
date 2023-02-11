@@ -45,7 +45,7 @@ elif [[ $dataset == "allen3d" ]]; then
     list="True"
     atlasImage="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX/"
     targetImage="/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZApprox-XComb_sig25.0/"
-    outPathX=$outPath'/XnuX/'
+    #outPathX=$outPath'/XnuX/'
     outPathZ=$outPath"/ZApprox-XComb_sig${sigma}/"
     zname="originalZnu_ZwC1.0_sig25.0_semidiscrete_plus0.05"
     maxV=702
@@ -86,15 +86,17 @@ optMethod="LBFGS"
 
 # look for all of the Quadrants in folder based on X's and generate all
 # This is for subsampling as well as approximating
-fils=$(find $outPathX | grep XnuX._ | grep npz )
+fils=$(find $outPathX | grep XnuX._3 | grep npz )
 for f in ${fils[*]}; do
     pref="$(basename -- $f)"
     pref2=$(echo $pref | tr X Z)
     pref3=${pref2%.npz}
     outPref="${outPathZ}"
+    echo "x file is $f"
     echo $(date) >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
     if [[ $dataset == "allen3d" ]]; then
-        python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,Zfile='${f/XnuX/$zname}',maxV=$maxV,optMethod='$optMethod',C=1.0);quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
+        echo "z file is ${pref/XnuX/$zname}"
+        python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,Zfile='$targetImage${pref/XnuX/$zname}',maxV=$maxV,optMethod='$optMethod',C=1.0);quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
     else
         python3 -c "import estimateSubsampleByLabelScratchTestExperiments as ess; ess.project3D('$f',$sigma, $nb_iter0, $nb_iter1,'$outPathZ${pref3}_',$Nmax,$Npart,maxV=$maxV,optMethod='$optMethod');quit()" >> "$outPathZ${pref3}_${Nmax}_$Npart.txt"
     fi

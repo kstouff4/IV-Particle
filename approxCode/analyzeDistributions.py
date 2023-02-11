@@ -51,3 +51,31 @@ def getEntropyEstimated(thetaNPZ):
     
     return
 
+def selectFeatures(particleNPZ,listOflist,listOfNames):
+    '''
+    Write out separate vtk file using name in list
+    
+    e.g. ERC = [10, 14, 23, 70, 250, 258, 329, 361, 368, 585]
+         Sub = [241,421, 531, 559, 641]
+         CA1 = [197]
+         CA2 = [208]
+         CA3 = [230]
+         DG = [310, 423, 593, 594]
+    '''
+    npz = np.load(particleNPZ,allow_pickle=True)
+    nuZ = npz[npz.files[1]]
+    Z = npz[npz.files[0]]
+    
+    for n in range(len(listOfNames)):
+        l = listOflist[n]
+        l[0]
+        inds = nuZ[:,int(l[0])] > 0.0001
+        for i in range(1,len(l)):
+            inds += nuZ[:,int(l[i])] > 0.0001
+        Znew = Z[inds,:]
+        nuZnew = nuZ[inds,:]
+        np.savez(particleNPZ.replace('.npz','_' + listOfNames[n] + '.npz'),Z=Znew,nu_Z=nuZnew)
+        maxInd = np.argmax(nuZnew,axis=-1)+1
+        vtf.writeVTK(Znew,[maxInd,np.sum(nuZnew,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],particleNPZ.replace('.npz','_' + listOfNames[n] + '.vtk'),polyData=None)
+    return
+    

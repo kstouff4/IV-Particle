@@ -154,6 +154,8 @@ def makeAllXandZ(imgFile, outpath, thickness=100, res=0.01,sig=0.1,C=1,flip=Fals
         x2 = x2t
     
     z = 0
+    if (thickness < 0):
+        thickness = imageO.shape[2]-1
     while (z < imageO.shape[2]-thickness):
         X0, X1, X2 = np.meshgrid(x0,x1,x2[z:z+thickness],indexing='ij')
         X = np.stack((X0,X1,X2),axis=-1)
@@ -196,7 +198,7 @@ def makeAllXandZ(imgFile, outpath, thickness=100, res=0.01,sig=0.1,C=1,flip=Fals
             np.savez(outpath+'_' + str(z) + '-' + str(z+thickness) + '_ZnuZ.npz',Z=Z,nu_Z=nu_Z)
        
         z = z + thickness    
-    return
+    return X,nu_X
 
 def compileZ(pathToOutput,pref=None):
     if (pref is None):
