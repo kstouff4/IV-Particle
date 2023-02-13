@@ -51,7 +51,7 @@ def getEntropyEstimated(thetaNPZ):
     
     return
 
-def selectFeatures(particleNPZ,listOflist,listOfNames):
+def selectFeatures(particleNPZ,listOflist,listOfNames,inverse=False):
     '''
     Write out separate vtk file using name in list
     
@@ -65,8 +65,10 @@ def selectFeatures(particleNPZ,listOflist,listOfNames):
     npz = np.load(particleNPZ,allow_pickle=True)
     nuZ = npz[npz.files[1]]
     Z = npz[npz.files[0]]
-    
+    indsTot = nuZ[:,0] < 0
+    indsTotList = 'not_'
     for n in range(len(listOfNames)):
+        indsTotList += listOfNames[n]
         l = listOflist[n]
         l[0]
         inds = nuZ[:,int(l[0])] > 0.0001
@@ -74,8 +76,55 @@ def selectFeatures(particleNPZ,listOflist,listOfNames):
             inds += nuZ[:,int(l[i])] > 0.0001
         Znew = Z[inds,:]
         nuZnew = nuZ[inds,:]
+        if np.sum(inds) < 1:
+            continue
         np.savez(particleNPZ.replace('.npz','_' + listOfNames[n] + '.npz'),Z=Znew,nu_Z=nuZnew)
         maxInd = np.argmax(nuZnew,axis=-1)+1
         vtf.writeVTK(Znew,[maxInd,np.sum(nuZnew,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],particleNPZ.replace('.npz','_' + listOfNames[n] + '.vtk'),polyData=None)
+        indsTot += inds # keeps track of indices in one of any compartments in list
+    if (inverse):
+        Zinv = Z[indsTot == 0,:]
+        nuZinv = nuZ[indsTot == 0,:]
+        np.savez(particleNPZ.replace('.npz','_' + indsTotList + '.npz'),Z=Zinv,nu_Z=nuZinv)
+        maxInd = np.argmax(nuZinv,axis=-1)+1
+        vtf.writeVTK(Zinv,[maxInd,np.sum(nuZinv,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],particleNPZ.replace('.npz','_' + indsTotList + '.vtk'),polyData=None)
+    
     return
     
+def selectPlanes(particleNPZ,thick=0.05,ax=2,s=None,e=None):
+    '''
+    Select Planes of full particle object based on coordinates
+    '''
+    npz = np.load(particleNPZ)
+    nuZ = npz[npz.files[1]]
+    Z = npz[npz.files[0]]
+    
+    if (s is None):
+        ma = np.max(Z,axis=(0))
+        mi = np.min(Z,axis=(0))
+        totSections = np.ceil((ma - mi)/thick)
+        totSections = int(totSections[ax])
+        for t in range(totSections):
+            inds = (Z[:,ax] > (mi[ax] + t*thick))*(Z[:,ax] <= (mi[ax] + (t+1)*thick))
+            if np.sum(inds) < 1:
+                continue
+            Znew = Z[inds,:]
+            nuZnew = nuZ[inds,:]
+            np.savez(particleNPZ.replace('.npz','_' + str(t) + 'outof' + str(totSections) + 'along' + str(ax) + '.npz'),Z=Znew,nu_Z=nuZnew)
+            maxInd = np.argmax(nuZnew,axis=-1)+1
+            vtf.writeVTK(Znew,[maxInd,np.sum(nuZnew,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],particleNPZ.replace('.npz','_' + str(t) + 'outof' + str(totSections) + 'along' + str(ax) + '.vtk'),polyData=None)
+    else:
+        sInd = s
+        while (sInd + thick <= e):
+            inds = (Z[:,ax] > sInd) * (Z[:,ax] <= sInd + thick)
+            if np.sum(inds) < 1:
+                sInd += thick
+                continue
+            Znew = Z[inds,:]
+            nuZnew = nuZ[inds,:]
+            np.savez(particleNPZ.replace('.npz','_' + str(sInd) + 'to' + str(sInd+thick) + 'along' + str(ax) + '.npz'),Z=Znew,nu_Z=nuZnew)
+            maxInd = np.argmax(nuZnew,axis=-1)+1
+            vtf.writeVTK(Znew,[maxInd,np.sum(nuZnew,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],particleNPZ.replace('.npz','_' + str(sInd) + 'to' + str(sInd+thick) + 'along' + str(ax) + '.vtk'),polyData=None)
+            sInd += thick
+            
+    return
