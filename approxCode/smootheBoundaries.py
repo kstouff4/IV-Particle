@@ -100,6 +100,29 @@ def groupXbyLabel(oneHotEncode,X):
         listOfX.append(X[oneHotEncode[:,i]])
     return listOfX
 
+def oneHotMemorySave(nu_X,nu_Zopt,nu_Z,zeroBased=False):
+    nonZeros = np.sum(nu_Z,axis=0) # values with 0 have no counts
+    nonZeros += np.sum(nu_Zopt,axis=0)
+    x = np.unique(nu_X).astype(int)
+    if not zeroBased:
+        x = x-1
+        print("subtracting")
+    nonZeros[x] += 1
+    indsToKeep = np.where(nonZeros > 0)
+    nnu_Z = nu_Z[:,indsToKeep[0]]
+    nnu_Zopt = nu_Zopt[:,indsToKeep[0]]
+    return nnu_Zopt,nnu_Z,indsToKeep[0]
+
+def groupXbyLabelSave(nuX,X,indsToKeep,zeroBased=False):
+    d = len(indsToKeep) # Z has all of possible labels
+    listOfX = []
+    iTK = indsToKeep
+    if (not zeroBased):
+        iTK += 1
+    for i in iTK:
+        listOfX.append(X[nuX == i])
+    return listOfX
+
 def stitchQuadrants(x1,x2,z1,z2,outpath,sigma,nb_iter0, nb_iter1, margin=2.0,Nmax=2000.0,Npart=50000.0,maxV=673,optMethod='LBFGS'):
     '''
     Takes in 2 quadrants (reads in X and Z quadrants)
@@ -133,6 +156,14 @@ def stitchQuadrants(x1,x2,z1,z2,outpath,sigma,nb_iter0, nb_iter1, margin=2.0,Nma
     max1 = np.max(X1,axis=0)
     min2 = np.min(X2,axis=0)
     max2 = np.max(X2,axis=0)
+    
+    if (np.min(x1Info['nu_X']) == 1):
+        zeroBased = False
+    elif (np.min(x1Info['nu_X']) == 0):
+        zeroBased = True
+    else:
+        print("not 1 or 0 for min, setting to zerobased false")
+        zeroBased = False
     
     z1Info = np.load(z1)
     Z1 = z1Info['Z']
@@ -195,13 +226,18 @@ def stitchQuadrants(x1,x2,z1,z2,outpath,sigma,nb_iter0, nb_iter1, margin=2.0,Nma
         return
     
     X = np.vstack((X1,X2))
-    nuX = np.vstack((x1Info['nu_X'],x2Info['nu_X']))
+    if len(x1Info['nu_X'].shape) < 2:
+        nuX = np.vstack((x1Info['nu_X'][...,None],x2Info['nu_X'][...,None]))
+    else:
+        nuX = np.vstack((x1Info['nu_X'],x2Info['nu_X']))
     
     # Check that you have divided Z1 + Z2 into Zopt and Z 
     print("total Z's before optimizing are " + str(Z1.shape[0] + Z2.shape[0]))
     print("total Z's after split and combine are " + str(Zopt.shape[0] + Z.shape[0]))
     
-    onu_X, onuZopt, onuZ, indsToKeep = oneHot(nuX,nuZopt,nuZ)
+    #onu_X, onuZopt, onuZ, indsToKeep = oneHot(nuX,nuZopt,nuZ)
+    onuZopt,onuZ,indsToKeep = oneHotMemorySave(nuX,nuZopt,nuZ,zeroBased=zeroBased)
+    
     
     def make_ranges(Xlist, Zo, Zn, epsX, epsZo, epsZn, sig):
       # Here X and Z are torch tensors
@@ -373,8 +409,8 @@ def stitchQuadrants(x1,x2,z1,z2,outpath,sigma,nb_iter0, nb_iter1, margin=2.0,Nma
         print(process.memory_info().rss)  # in bytes
         return loss
 
-    Xlist = groupXbyLabel(onu_X,X)
-
+    #Xlist = groupXbyLabel(onu_X,X)
+    Xlist = groupXbyLabelSave(nuX,X,indsToKeep,zeroBased=zeroBased) 
     # make Epislon List
     def makeEps(Xlist,Zo,Z,Nmax,Npart):
         '''

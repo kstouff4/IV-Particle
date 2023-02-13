@@ -112,13 +112,16 @@ def getXZ(npzX,npzZ):
     xInfo = np.load(npzX)
     X = xInfo['X']
     print("numbers of X: " + str(X.shape[0]))
+    zeroBased = True
+    if (np.min(xInfo['nu_X']) > 0):
+        zeroBased = False
     zInfo = np.load(npzZ)
     if ('Z' in zInfo.files):
         Z = zInfo['Z']
-        nu_Z,indsToKeep = oneHotMemorySave(xInfo['nu_X'],zInfo['nu_Z'],zeroBased=True)
+        nu_Z,indsToKeep = oneHotMemorySave(xInfo['nu_X'],zInfo['nu_Z'],zeroBased=zeroBased)
     elif ('X' in zInfo.files):
         Z = zInfo['X']
-        nu_Z,indsToKeep = oneHotMemorySave(xInfo['nu_X'],zInfo['nu_X'],zeroBased=True)
+        nu_Z,indsToKeep = oneHotMemorySave(xInfo['nu_X'],zInfo['nu_X'],zeroBased=zeroBased)
     else:
         print("Z or X not found in Z file")
     print("numbers of Z: " + str(Z.shape[0]))
