@@ -120,7 +120,7 @@ def groupXbyLabelSave(nuX,X,indsToKeep,zeroBased=False):
     if (not zeroBased):
         iTK += 1
     for i in iTK:
-        listOfX.append(X[nuX == i])
+        listOfX.append(X[np.squeeze(nuX == i),...])
     return listOfX
 
 def stitchQuadrants(x1,x2,z1,z2,outpath,sigma,nb_iter0, nb_iter1, margin=2.0,Nmax=2000.0,Npart=50000.0,maxV=673,optMethod='LBFGS'):
@@ -421,14 +421,27 @@ def stitchQuadrants(x1,x2,z1,z2,outpath,sigma,nb_iter0, nb_iter1, margin=2.0,Nma
         partList = []
         ncubeList = []
         denZ = min(Z.shape[0]/Npart,Nmax)
-        volZ = np.prod(np.max(Z,axis=0) - np.min(Z,axis=0) + 0.001) # volume of bounding box (avoid 0); 1 micron
-        epsZ = np.cbrt(volZ/denZ)
+        rangeOfData = np.max(Z,axis=0) - np.min(Z,axis=0)
+        numDimNonzero = np.sum(rangeOfData > 0)
+        if rangeOfData[-1] == 0:
+            volZ = np.prod(rangeOfData[:-1])
+            epsZ = (volZ/denZ)**(1.0/numDimNonzero)
+        else: # assume 3D
+            volZ = np.prod(np.max(Z,axis=0) - np.min(Z,axis=0)) # volume of bounding box  (avoid 0); 1 micron
+            epsZ = np.cbrt(volZ/denZ)
+
         print("ZX\tVol\tParts\tCubes\tEps")
         print("Z\t" + str(volZ) + "\t" + str(Z.shape[0]) + "\t" + str(denZ) + "\t" + str(epsZ))
         
         denZo = min(Zo.shape[0]/Npart,Nmax)
-        volZo = np.prod(np.max(Zo,axis=0) - np.min(Zo,axis=0) + 0.001)
-        epsZo = np.cbrt(volZo/denZo)
+        rangeOfData = np.max(Zo,axis=0) - np.min(Zo,axis=0)
+        numDimNonzero = np.sum(rangeOfData > 0)
+        if rangeOfData[-1] == 0:
+            volZo = np.prod(rangeOfData[:-1])
+            epsZo = (volZo/denZo)**(1.0/numDimNonzero)
+        else: # assume 3D
+            volZo = np.prod(np.max(Zo,axis=0) - np.min(Zo,axis=0)) # volume of bounding box  (avoid 0); 1 micron
+            epsZo = np.cbrt(volZo/denZo)
         print("Zo\t" + str(volZ) + "\t" + str(Zo.shape[0]) + "\t" + str(denZo) + "\t" + str(epsZo))
 
         for X in Xlist:
@@ -436,8 +449,14 @@ def stitchQuadrants(x1,x2,z1,z2,outpath,sigma,nb_iter0, nb_iter1, margin=2.0,Nma
                 epsList.append(-1)
                 continue
             den = min(X.shape[0]/Npart,Nmax)
-            volX = np.prod(np.max(X,axis=0)-np.min(X,axis=0) + 0.001)
-            epsX = np.cbrt(volX/den)
+            rangeOfData = np.max(X,axis=0) - np.min(X,axis=0)
+            numDimNonzero = np.sum(rangeOfData > 0)
+            if rangeOfData[-1] == 0:
+                volX = np.prod(rangeOfData[:-1])
+                epsX = (volX/den)**(1.0/numDimNonzero)
+            else:
+                volX = np.prod(np.max(X,axis=0)-np.min(X,axis=0))
+                epsX = np.cbrt(volX/den)
             epsList.append(epsX)
             print("X\t" + str(volX) + "\t" + str(X.shape[0]) + "\t" + str(den) + "\t" + str(epsX))
         return epsList,epsZo,epsZ
@@ -860,6 +879,7 @@ def stitchSlabs(x1,x2,z1,z2,outpath,sigma,nb_iter0,nb_iter1,margin=2.0,Nmax=2000
 
     Xlist = groupXbyLabel(onu_X,X)
 
+    '''
     # make Epislon List
     def makeEps(Xlist,Zo,Z,Nmax,Npart):
         '''
@@ -887,6 +907,56 @@ def stitchSlabs(x1,x2,z1,z2,outpath,sigma,nb_iter0,nb_iter1,margin=2.0,Nmax=2000
                 continue
             volX = np.prod(np.max(X,axis=0)-np.min(X,axis=0) + 0.001)
             epsX = np.cbrt(volX/den)
+            epsList.append(epsX)
+            print("X\t" + str(volX) + "\t" + str(X.shape[0]) + "\t" + str(den) + "\t" + str(epsX))
+        return epsList,epsZo,epsZ
+    '''
+    
+    def makeEps(Xlist,Zo,Z,Nmax,Npart):
+        '''
+        Returns list of epsilons to use for making ranges
+        '''
+        epsList = []
+        volList = []
+        partList = []
+        ncubeList = []
+        denZ = min(Z.shape[0]/Npart,Nmax)
+        rangeOfData = np.max(Z,axis=0) - np.min(Z,axis=0)
+        numDimNonzero = np.sum(rangeOfData > 0)
+        if rangeOfData[-1] == 0:
+            volZ = np.prod(rangeOfData[:-1])
+            epsZ = (volZ/denZ)**(1.0/numDimNonzero)
+        else: # assume 3D
+            volZ = np.prod(np.max(Z,axis=0) - np.min(Z,axis=0)) # volume of bounding box  (avoid 0); 1 micron
+            epsZ = np.cbrt(volZ/denZ)
+
+        print("ZX\tVol\tParts\tCubes\tEps")
+        print("Z\t" + str(volZ) + "\t" + str(Z.shape[0]) + "\t" + str(denZ) + "\t" + str(epsZ))
+        
+        denZo = min(Zo.shape[0]/Npart,Nmax)
+        rangeOfData = np.max(Zo,axis=0) - np.min(Zo,axis=0)
+        numDimNonzero = np.sum(rangeOfData > 0)
+        if rangeOfData[-1] == 0:
+            volZo = np.prod(rangeOfData[:-1])
+            epsZo = (volZo/denZo)**(1.0/numDimNonzero)
+        else: # assume 3D
+            volZo = np.prod(np.max(Zo,axis=0) - np.min(Zo,axis=0)) # volume of bounding box  (avoid 0); 1 micron
+            epsZo = np.cbrt(volZo/denZo)
+        print("Zo\t" + str(volZ) + "\t" + str(Zo.shape[0]) + "\t" + str(denZo) + "\t" + str(epsZo))
+
+        for X in Xlist:
+            if X.shape[0] < 1:
+                epsList.append(-1)
+                continue
+            den = min(X.shape[0]/Npart,Nmax)
+            rangeOfData = np.max(X,axis=0) - np.min(X,axis=0)
+            numDimNonzero = np.sum(rangeOfData > 0)
+            if rangeOfData[-1] == 0:
+                volX = np.prod(rangeOfData[:-1])
+                epsX = (volX/den)**(1.0/numDimNonzero)
+            else:
+                volX = np.prod(np.max(X,axis=0)-np.min(X,axis=0))
+                epsX = np.cbrt(volX/den)
             epsList.append(epsX)
             print("X\t" + str(volX) + "\t" + str(X.shape[0]) + "\t" + str(den) + "\t" + str(epsX))
         return epsList,epsZo,epsZ
