@@ -136,7 +136,7 @@ def makeSubsample(Xfile,sig,savename,xtype='discrete',ztype='semi-discrete',over
     
     return
 
-def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete',ztype='semi-discrete',overhead=0.1,maxV=702,C=1.2,dim=2,z=0,saveX=True):
+def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete',ztype='semi-discrete',overhead=0.1,maxV=702,C=1.2,dim=2,z=0,saveX=True,zeroBased=True):
     '''
     Sampling of same types as in makeSubsample, but with weighting geographically in subset
     
@@ -147,12 +147,15 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
     coordName = name of variable storing coordinates (assume N x 2/3)
     nuName = name of variable storing feature value (assume N x 1)
     
+    ztype \in {'discrete', 'semi-discrete', 'uniform'}
+    
     '''
-    if (coordName == 'geneInd'):
-        zeroBased = True
-        print("features are zero-based")
-    else:
-        zeroBased = False
+    if (zeroBased is None):
+        if (coordName == 'geneInd'):
+            zeroBased = True
+            print("features are zero-based")
+        else:
+            zeroBased = False
     info = np.load(Xfile)
     print(info.files)
     coords = info[coordName]
@@ -213,8 +216,8 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
     '''
     
     # Numpy version 
-    uInds,sample = np.unique(coords_labels,return_index=True,axis=0) # returns first occurrence of each cube 
-    nuZ = nuX[sample]
+    uInds,sample,counts = np.unique(coords_labels,return_index=True,return_counts=True,axis=0) # returns first occurrence of each cube 
+    nuZ = nuX[sample] # returns first occurrence of mRNA in cube 
     Z = coords[sample,...]
     if dim == 2:
         zz = np.zeros((Z.shape[0],3))
@@ -222,7 +225,9 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
         zz[:,-1] = z
         Z = zz
     
-    nu_Z = makeOneHot(nuZ,maxVal=maxV,zeroBased=zeroBased)*coords.shape[0]/nuZ.shape[0] # weigh points with appropriate mass and make large array
+    #nu_Z = makeOneHot(nuZ,maxVal=maxV,zeroBased=zeroBased)*coords.shape[0]/nuZ.shape[0] # weigh points with appropriate mass and make large array
+    nu_Z = makeOneHot(nuZ,maxVal=maxV,zeroBased=zeroBased)*counts[...,None] # weigh particles based on number of MRNA in each cube
+    nu_Z = nu_Z*coords.shape[0]/np.sum(nu_Z)
     
     maxInd = np.argmax(nu_Z,axis=-1)+1
     vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_discrete.vtk',polyData=None)
@@ -231,9 +236,16 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
         nnu_Z,indsToKeep = oneHotMemorySave(nuX,nu_Z,zeroBased=zeroBased)
         nu_Z = nnu_Z + overhead
         nu_Z = reverseOneHot(nu_Z,indsToKeep,maxV)
+        # renormalize 
+        nu_Z = nu_Z*coords.shape[0]/(np.sum(nu_Z))
         np.savez(savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete_plus' + str(overhead) + '.npz',Z=Z, nu_Z=nu_Z)
         maxInd = np.argmax(nu_Z,axis=-1)+1
         vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete_plus' + str(overhead) + '.vtk',polyData=None)
+    elif (ztype == 'uniform'):
+        nu_Z = 1.0/(nu_Z.shape[-1]) # shape should be number of total values
+        np.savez(savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_uniform.npz',Z=Z, nu_Z=nu_Z)
+        maxInd = np.argmax(nu_Z,axis=-1)+1
+        vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_uniform.vtk',polyData=None)
     
     return
 
