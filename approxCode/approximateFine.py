@@ -34,7 +34,7 @@ from pykeops.torch import Vi, Vj
 
 from pykeops.torch.cluster import sort_clusters
 from pykeops.torch.cluster import cluster_ranges_centroids
-from pykeops.torch.cluster import grid_cluster
+#from pykeops.torch.cluster import grid_cluster
 from pykeops.torch.cluster import from_matrix
 
 np_dtype = "float32"
@@ -48,7 +48,72 @@ plt.ion()
 import GPUtil
 GPUtil.showUtilization()
 
+import pdb
 ################################################################################
+# grid Cluster New
+def grid_cluster(x, size):
+    r"""Simplistic clustering algorithm which distributes points into cubic bins.
+
+    Args:
+        x ((M,D) Tensor): List of points :math:`x_i \in \mathbb{R}^D`.
+        size (float or (D,) Tensor): Dimensions of the cubic cells ("voxels").
+
+    Returns:
+        (M,) IntTensor:
+
+        Vector of integer **labels**. Two points ``x[i]`` and ``x[j]`` are
+        in the same cluster if and only if ``labels[i] == labels[j]``.
+        Labels are sorted in a compact range :math:`[0,C)`,
+        where :math:`C` is the number of non-empty cubic cells.
+
+    Example:
+        >>> x = torch.Tensor([ [0.], [.1], [.9], [.05], [.5] ])  # points in the unit interval
+        >>> labels = grid_cluster(x, .2)  # bins of size .2
+        >>> print( labels )
+        tensor([0, 0, 2, 0, 1], dtype=torch.int32)
+
+    """
+    print("using my grid cluster")
+    with torch.no_grad():
+        # Quantize the points' positions
+        if x.shape[1] == 1:
+            weights = torch.IntTensor(
+                [1],
+            ).to(x.device)
+        elif x.shape[1] == 2:
+            weights = torch.IntTensor(
+                [2**10, 1],
+            ).to(x.device)
+        elif x.shape[1] == 3:
+            weights = torch.IntTensor([2**20, 2**10, 1]).to(x.device)
+        else:
+            raise NotImplementedError()
+        x_ = ((x-x.min(axis=0,keepdim=True).values) / size).floor().int()
+        print("number of unique cubes in x,y,z")
+        print(len(torch.unique(x_[:,0])))
+        print(len(torch.unique(x_[:,1])))
+        print(len(torch.unique(x_[:,2])))
+        qt = x.max(axis=0,keepdim=True).values - x.min(axis=0,keepdim=True).values
+        print("with ranges, ", qt)
+        vol = qt[0]
+        for j in range(1,len(qt)):
+            if (qt[j] > 0):
+                vol *= qt[j]
+        print("and volume, ", vol)
+              
+        x_ *= weights
+        lab = x_.sum(1)  # labels
+        lab = lab - lab.min()
+
+        # Replace arbitrary labels with unique identifiers in a compact arange
+        u_lab = torch.unique(lab).sort()[0]
+        N_lab = len(u_lab)
+        foo = torch.empty(u_lab.max() + 1, dtype=torch.int32, device=x.device)
+        foo[u_lab] = torch.arange(N_lab, dtype=torch.int32, device=x.device)
+        lab = foo[lab]
+
+    return lab
+
 # Helper Functions
 def makeOneHot(nu,maxVal=673):
     nu1 = np.zeros((nu.shape[0],maxVal)).astype('float32')
@@ -168,7 +233,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         X_labelsList = []
         Z_labels = grid_cluster(Z, epsZ) 
         Z_ranges, Z_centroids, _ = cluster_ranges_centroids(Z, Z_labels)
-        D = ((LazyTensor(Z_centroids[:, None, :]) - LazyTensor(Z_centroids[None, :, :])) ** 2).sum(dim=2)
+        #D = ((LazyTensor(Z_centroids[:, None, :]) - LazyTensor(Z_centroids[None, :, :])) ** 2).sum(dim=2)
+        D = ((Z_centroids[:,None,:] - Z_centroids[None,:,:])**2).sum(dim=2)
         keep = D <(a*epsZ+4* sig) ** 2
         rangesZZ_ij = from_matrix(Z_ranges, Z_ranges, keep)
         print(rangesZZ_ij[2].shape)
@@ -182,12 +248,21 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         print("")
 
         for cc in range(len(Xlist)):
+            print("index of list is " + str(cc))
             X = Xlist[cc]
+            print(X.shape)
             eps = epsX[cc]
-            X_labels = grid_cluster(X, eps)
+            print("eps is " + str(eps))
+            X_labels = grid_cluster(X, eps) #BC edit
             X_labelsList.append(X_labels)
+            print("X_labels shape ", X_labels.shape)
+            print(torch.max(X_labels))
+            print(torch.unique(X_labels))
+            print(len(torch.unique(X_labels)))
             X_ranges, X_centroids, _ = cluster_ranges_centroids(X, X_labels)
-            D = ((LazyTensor(X_centroids[:, None, :]) - LazyTensor(X_centroids[None, :, :])) ** 2).sum(dim=2)
+            #pdb.set_trace()
+            print(X_centroids.shape)
+            D = ((X_centroids[:, None, :] - X_centroids[None, :, :]) ** 2).sum(dim=2)
             a = np.sqrt(3)
             keep = D <(a*eps+4* sig) ** 2
             rangesXX_ij = from_matrix(X_ranges, X_ranges, keep)
@@ -202,7 +277,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
               sparse_area, total_area, int(100 * sparse_area / total_area)))
             print("")
             '''
-            D = ((LazyTensor(Z_centroids[:, None, :]) - LazyTensor(X_centroids[None, :, :])) ** 2).sum(dim=2)
+            D = ((Z_centroids[:, None, :] - X_centroids[None, :, :]) ** 2).sum(dim=2)
             keep = D < (a*(epsZ/2.0 + eps/2.0)+4*sig)**2
             rangesZX_ij = from_matrix(Z_ranges, X_ranges, keep)
             print(rangesZX_ij[2].shape)
@@ -285,6 +360,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
                 #Ef = selection[:,lab]*(KPZZ_ij.sum(dim=1))
                 Es = -2*KPZX_ij.sum(dim=1).sum()
                 Es.backward()
+                #print("p0 grad:", p0.grad.norm())
                 #print("passed Es loss all for " + str(lab) + " out of " + str(len(tXlist)-1))
                 L += Es
                 #del LX_i, LX_j, DZX_ij, KZX_ij, KPZX_ij
@@ -364,7 +440,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
                 KPZX_ij.ranges = rangesZX_ij
                 Es = -2*KPZX_ij.sum(dim=1).sum()
                 L += Es
-                Es.backward() # deleting retain graph                 
+                Es.backward() # deleting retain graph
                 #print("passed Es loss for " + str(lab) + " out of " + str(len(tXlist)-1))
                 #Lback.append(E.sum().backward())
             L += c
@@ -404,23 +480,32 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         partList = []
         ncubeList = []
         denZ = min(Z.shape[0]/Npart,Nmax)
-        volZ = np.prod(np.max(Z,axis=0) - np.min(Z,axis=0) + 0.001) # volume of bounding box (avoid 0); 1 micron
-        epsZ = np.cbrt(volZ/denZ)
+        rangeOfData = np.max(Z,axis=0) - np.min(Z,axis=0)
+        numDimNonzero = np.sum(rangeOfData > 0)
+        if rangeOfData[-1] == 0:
+            volZ = np.prod(rangeOfData[:-1])
+            epsZ = (volZ/denZ)**(1.0/numDimNonzero)
+        else: # assume 3D
+            volZ = np.prod(np.max(Z,axis=0) - np.min(Z,axis=0)) # volume of bounding box  (avoid 0); 1 micron
+            epsZ = np.cbrt(volZ/denZ)
         print("ZX\tVol\tParts\tCubes\tEps")
         print("Z\t" + str(volZ) + "\t" + str(Z.shape[0]) + "\t" + str(denZ) + "\t" + str(epsZ))
         for X in Xlist:
             den = min(X.shape[0]/Npart,Nmax)
-            volX = np.prod(np.max(X,axis=0)-np.min(X,axis=0) + 0.001)
-            epsX = np.cbrt(volX/den)
+            rangeOfData = np.max(X,axis=0) - np.min(X,axis=0)
+            numDimNonzero = np.sum(rangeOfData > 0)
+            if rangeOfData[-1] == 0:
+                volX = np.prod(rangeOfData[:-1])
+                epsX = (volX/den)**(1.0/numDimNonzero)
+            else:
+                volX = np.prod(np.max(X,axis=0)-np.min(X,axis=0))
+                epsX = np.cbrt(volX/den)
             epsList.append(epsX)
             print("X\t" + str(volX) + "\t" + str(X.shape[0]) + "\t" + str(den) + "\t" + str(epsX))
         return epsList,epsZ
     temptime = time.time()
     epsX,epsZ = makeEps(Xlist,Z,Nmax,Npart)
     print("time for making epsilon is " + str(time.time()-temptime)) 
-    print("epsilons are")
-    print(epsX)
-    print(epsZ)
     
     # make tensors for each
     tXlist = []
@@ -452,7 +537,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     len_Z, dim_nu_Z = nu_Z.shape
 
     # Optimization
-
+    outerCost = []
     def optimize(tZ, tnu_Z, nb_iter = 20, flag = 'all'):
         if flag == 'all':
             temptime = time.time()
@@ -480,6 +565,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             print("error is ", L.detach().cpu().numpy())
             print("relative error loss", L.detach().cpu().numpy()/c.detach().cpu().numpy())
             lossTrack.append(L.detach().cpu().numpy()/c.detach().cpu().numpy())
+            print("p0 grad: ", p0.grad.norm())
             #tot.backward()
             return L
 
@@ -490,6 +576,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             temptime = time.time()
             optimizer.step(closure)
             print("time to take a step is " + str(time.time() - temptime))
+            osd = optimizer.state_dict()
+            outerCost.append(np.copy(osd['state'][0]['prev_loss']))
             #torch.cuda.empty_cache()
 
         if flag == 'all':
@@ -522,6 +610,13 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     ax[1].set_title('Distribution Changed')
     fig.savefig(outpath+'_optimalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) + '_distances.png',dpi=300)
     np.savez(outpath+'_optimalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) + '_distances.npz',Z=Z,nZ=nZ,nu_Z=nu_Z,nnu_Z=nnu_Z,distMove=distMove,distAlt=distAlt)
+    
+    fig,ax = plt.subplots()
+    ax.plot(np.arange(len(outerCost)),outerCost)
+    ax.set_title('Outer iterations Cost')
+    ax.set_xlabel('Outer Step Iterations')
+    ax.set_ylabel('Total Loss')
+    fig.savefig(outpath+'_optimalZcost_sig' + str(sig) + '_C' + str(C) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) + '_OUTER_ONLY.png',dpi=300)
     
     bigMove = distMove > np.quantile(distMove,0.75)
     bigDist = distAlt > np.quantile(distAlt,0.75)

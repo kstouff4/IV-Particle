@@ -242,7 +242,7 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
         maxInd = np.argmax(nu_Z,axis=-1)+1
         vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete_plus' + str(overhead) + '.vtk',polyData=None)
     elif (ztype == 'uniform'):
-        nu_Z = 1.0/(nu_Z.shape[-1]) # shape should be number of total values
+        nu_Z[:,:] = 1.0/(nu_Z.shape[-1]) # shape should be number of total values
         np.savez(savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_uniform.npz',Z=Z, nu_Z=nu_Z)
         maxInd = np.argmax(nu_Z,axis=-1)+1
         vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_uniform.vtk',polyData=None)
