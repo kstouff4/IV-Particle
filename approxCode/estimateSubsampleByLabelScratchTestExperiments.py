@@ -100,7 +100,7 @@ def groupXbyLabelSave(nuX,X,indsToKeep,zeroBased=False):
     if (not zeroBased):
         iTK += 1
     for i in iTK:
-        listOfX.append(X[nuX == i])
+        listOfX.append(X[np.squeeze(nuX == i),...])
     return listOfX
     
     

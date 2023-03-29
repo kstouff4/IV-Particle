@@ -33,7 +33,7 @@ from pykeops.torch import Vi, Vj
 
 from pykeops.torch.cluster import sort_clusters
 from pykeops.torch.cluster import cluster_ranges_centroids
-from pykeops.torch.cluster import grid_cluster
+#from pykeops.torch.cluster import grid_cluster
 from pykeops.torch.cluster import from_matrix
 
 np_dtype = "float32"
@@ -68,6 +68,70 @@ StitchQuadrants:
     Save combined datasets: X, Z + Zo following optimization
 
 '''
+# grid Cluster New
+def grid_cluster(x, size):
+    r"""Simplistic clustering algorithm which distributes points into cubic bins.
+
+    Args:
+        x ((M,D) Tensor): List of points :math:`x_i \in \mathbb{R}^D`.
+        size (float or (D,) Tensor): Dimensions of the cubic cells ("voxels").
+
+    Returns:
+        (M,) IntTensor:
+
+        Vector of integer **labels**. Two points ``x[i]`` and ``x[j]`` are
+        in the same cluster if and only if ``labels[i] == labels[j]``.
+        Labels are sorted in a compact range :math:`[0,C)`,
+        where :math:`C` is the number of non-empty cubic cells.
+
+    Example:
+        >>> x = torch.Tensor([ [0.], [.1], [.9], [.05], [.5] ])  # points in the unit interval
+        >>> labels = grid_cluster(x, .2)  # bins of size .2
+        >>> print( labels )
+        tensor([0, 0, 2, 0, 1], dtype=torch.int32)
+
+    """
+    print("using my grid cluster")
+    with torch.no_grad():
+        # Quantize the points' positions
+        if x.shape[1] == 1:
+            weights = torch.IntTensor(
+                [1],
+            ).to(x.device)
+        elif x.shape[1] == 2:
+            weights = torch.IntTensor(
+                [2**10, 1],
+            ).to(x.device)
+        elif x.shape[1] == 3:
+            weights = torch.IntTensor([2**20, 2**10, 1]).to(x.device)
+        else:
+            raise NotImplementedError()
+        x_ = ((x-x.min(axis=0,keepdim=True).values) / size).floor().int()
+        print("number of unique cubes in x,y,z")
+        print(len(torch.unique(x_[:,0])))
+        print(len(torch.unique(x_[:,1])))
+        print(len(torch.unique(x_[:,2])))
+        qt = x.max(axis=0,keepdim=True).values - x.min(axis=0,keepdim=True).values
+        print("with ranges, ", qt)
+        vol = qt[0]
+        for j in range(1,len(qt)):
+            if (qt[j] > 0):
+                vol *= qt[j]
+        print("and volume, ", vol)
+              
+        x_ *= weights
+        lab = x_.sum(1)  # labels
+        lab = lab - lab.min()
+
+        # Replace arbitrary labels with unique identifiers in a compact arange
+        u_lab = torch.unique(lab).sort()[0]
+        N_lab = len(u_lab)
+        foo = torch.empty(u_lab.max() + 1, dtype=torch.int32, device=x.device)
+        foo[u_lab] = torch.arange(N_lab, dtype=torch.int32, device=x.device)
+        lab = foo[lab]
+
+    return lab
+
 
 def oneHot(nu_X,nu_Zopt,nu_Z):
     '''
@@ -882,9 +946,7 @@ def stitchSlabs(x1,x2,z1,z2,outpath,sigma,nb_iter0,nb_iter1,margin=2.0,Nmax=2000
     '''
     # make Epislon List
     def makeEps(Xlist,Zo,Z,Nmax,Npart):
-        '''
-        Returns list of epsilons to use for making ranges
-        '''
+        #Returns list of epsilons to use for making ranges
         epsList = []
         volList = []
         partList = []
@@ -1132,7 +1194,7 @@ def stitchAllQuadrants(inpathX,inpathZ,prefix,sigma,marginI,outpath,nb_iter0,nb_
     print(inpathX + '*' + prefix + '*XnuX._*npz')
     allX = glob.glob(inpathX + '*' + prefix + '*XnuX._*npz')
     print(len(allX))
-    allZ = glob.glob(inpathZ + '*' + prefix + '*_ZnuZ._*' + '*ZAll*npz')
+    allZ = glob.glob(inpathZ + '*' + prefix + '*ZnuZ._*' + '*ZAll*npz')
     print(len(allZ))
         
     allX.sort()

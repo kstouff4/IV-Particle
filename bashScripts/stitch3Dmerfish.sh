@@ -17,7 +17,7 @@ maxV=702
 outDir=$outPath"/ZApprox-XComb_sig${sigma}_Feb20_Stitched/"
 mkdir $outDir
 
-pref='_201_'
-python3 -c "import smootheBoundaries as sb; sb.stitchAllQuadrants('$outPathX','$outPathZ','$pref',$sigma,$marg,$outDir,$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()" >> $outDir$pref"Stitched.txt"
+pref='_202_'
+python3 -c "import smootheBoundaries as sb; sb.stitchAllQuadrants('$outPathX','$outPathZ','$pref',$sigma,$marg,'$outDir',$nb_iter0,$nb_iter1,$Nmax,$Npart,$maxV);quit()" >> $outDir$pref"Stitched.txt"
 
 

@@ -13,5 +13,5 @@ sig=$5
 
 fils=$(ls $inpDir | grep $suff | grep npz)
 for f in ${fils[*]}; do
-    python3 -c "import analyzeOutput as ao; import numpy as np; x = np.load('$f'); X=x['$x']; nuX = x['nux']; ao.getLocalDensity(X,nuX,$sig,('$f').replace('.npz','_density.vtk')); quit()"
+    python3 -c "import analyzeOutput as ao; import numpy as np; x = np.load('$inpDir$f'); X=x['$x']; nuX = x['$nux']; ao.getLocalDensity(X,nuX,$sig,('$inpDir$f').replace('.npz','_density.vtk')); quit()"
 done
