@@ -47,10 +47,27 @@ elif [[ $2 == 'merfish' ]]; then
         mkdir $sd
         python3 -c "import mrnaMI as mm; mm.wholeBrainMI('$fp','$sd');quit()"
     fi
-fi
-        
-    
-    
+
+elif [[ $2 == 'barseq' ]]; then
+    echo "computing barseq"
+    fp='/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/Genes/'
+    fils=$(find $fp | grep slice | grep npz)
+    if [[ $1 == 1 ]]; then
+        for f in ${fils[*]}; do
+            python3 -c "import mrnaMI as mm; mm.singleMI('$f',$cSize,$mSize,$k);quit()"
+        done
+    elif [[ $1 == 2 ]]; then
+        fils=$(find $fp | grep cSize${cSize}_k${k}.npz)
+        for f in ${fils[*]}; do
+            python3 -c "import mrnaMI as mm; mm.convolveHalfPlane('$f',$mSize,axC=0);mm.convolveHalfPlane('$f',$mSize,axC=1);quit()"
+        done
+    elif [[ $1 == 3 ]]; then
+        sd='/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/MI_ResultsGenes/'
+        mkdir $sd
+        python3 -c "import mrnaMI as mm; mm.wholeBrainMI('$fp','$sd');quit()"
+    fi
+fi    
+      
 # copy all files from ax0 and ax1 into same folder to look at them collectively 
 
 

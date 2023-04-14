@@ -32,9 +32,14 @@ def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None):
     mSize = megaCube size (for doing convolution)
     k = number of histogram bins
     '''
-    
+    if ('npz' in detectedTransCSV):
+        info = np.load(detectedTransCSV) # assume in the form of X and nu_X
+        coords = info['X'][:,0:2] # only take x and y 
+        ugenes,inv = np.unique(info['nu_X'],return_inverse=True)
+        invOneHot = np.zeros((inv.shape[0],len(ugenes)), dtype=np.bool8)
+        invOneHot[np.arange(inv.shape[0]),inv] = 1
     # 3D Allen MERFISH Data
-    if meta is None:
+    elif meta is None:
         df = pd.read_csv(detectedTransCSV)
         print('done')
         x_ = df['global_x'].to_numpy() # units of micron for allen 3D
@@ -138,7 +143,12 @@ def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None):
     bins=np.reshape(cubes_binned,(cubes_centroids.shape[0],cubes_centroids.shape[1],cubes_binned.shape[-1]))
     
     # write out bins per individual cubes as particles
-    np.savez(detectedTransCSV.replace('.csv','2DcubeMRNA_cSize' + str(cSize) + '_k' + str(k) + '.npz'),cubes_binned=cubes_binned, cubes_centroids=cubes_centroids,bins=bins,cubes_mrna=cubes_mrna)
+    if ('csv' in detectedTransCSV):
+        np.savez(detectedTransCSV.replace('.csv','2DcubeMRNA_cSize' + str(cSize) + '_k' + str(k) + '.npz'),cubes_binned=cubes_binned, cubes_centroids=cubes_centroids,bins=bins,cubes_mrna=cubes_mrna)
+    else:
+        np.savez(detectedTransCSV.replace('.npz','2DcubeMRNA_cSize' + str(cSize) + '_k' + str(k) + '.npz'),cubes_binned=cubes_binned, cubes_centroids=cubes_centroids,bins=bins,cubes_mrna=cubes_mrna)
+        
+        
     f,ax = plt.subplots(2,1)
     ccr0 = np.ravel(cubes_centroids[...,0])
     ccr1 = np.ravel(cubes_centroids[...,1])
@@ -147,7 +157,11 @@ def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None):
     indsFill = np.ravel(np.sum(cubes_mrna,axis=-1)) > 0
     ax[1].scatter(ccr0[indsFill],ccr1[indsFill])
     ax[1].set_title("Non-empty Cubes: " + str(np.sum(indsFill)))
-    f.savefig(detectedTransCSV.replace('.csv','centroidsLocs_cSize' + str(cSize) + '.png'),dpi=300)
+    if ('csv' in detectedTransCSV):
+        f.savefig(detectedTransCSV.replace('.csv','centroidsLocs_cSize' + str(cSize) + '.png'),dpi=300)
+    else:
+        f.savefig(detectedTransCSV.replace('.npz','centroidsLocs_cSize' + str(cSize) + '.png'),dpi=300)
+        
     return
     
 def convolveHalfPlane(cubeFile,mSize,axC=0):

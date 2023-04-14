@@ -86,9 +86,15 @@ def makeSubsampleFun(X, nu_X, sig, C=1.2,dis=True, maxV=673):
     sub_ind = np.random.choice(X.shape[0],replace = False, size = N)
     print(sub_ind.shape)
     Z = X[sub_ind,:]
-    nu_Z = nu_X[sub_ind,:] # start weights off as fraction of what you started with
+    nu_Z = nu_X[sub_ind,...] # start weights off as fraction of what you started with
     if (dis):
         nu_Z = makeOneHot(nu_Z,maxVal=maxV)*X.shape[0]/N
+    else:
+        # weigh nu_X with the total delta of mass missing
+        xMass = np.sum(nu_X)
+        zMass = np.sum(nu_Z)
+        c = xMass/zMass
+        nu_Z = c*nu_Z
     return Z, nu_Z
 
 def addOverhead(Xfile,Zfile,overhead=0.1,maxV=673):
@@ -114,6 +120,8 @@ def makeSubsample(Xfile,sig,savename,xtype='discrete',ztype='semi-discrete',over
     xinfo = np.load(Xfile)
     X=xinfo['X']
     nu_X = xinfo['nu_X']
+    print(X.shape)
+    print(nu_X.shape)
     if (xtype == 'discrete'):
         Z, nu_Z = makeSubsampleFun(X,nu_X,sig,C=C,dis=True,maxV=maxV)
         # write original Z 
@@ -134,9 +142,9 @@ def makeSubsample(Xfile,sig,savename,xtype='discrete',ztype='semi-discrete',over
         vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete.vtk',polyData=None)
         np.savez(savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete.npz',Z=Z, nu_Z=nu_Z)
     
-    return
+    return savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete.npz'
 
-def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete',ztype='semi-discrete',overhead=0.1,maxV=702,C=1.2,dim=2,z=0,saveX=True,zeroBased=True):
+def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete',ztype='semi-discrete',overhead=0.1,maxV=702,C=1.2,dim=3,z=0,saveX=True,zeroBased=True):
     '''
     Sampling of same types as in makeSubsample, but with weighting geographically in subset
     
@@ -165,14 +173,17 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
     
     print(coords.shape)
     nuX = np.squeeze(info[nuName])
+    print("nuX shape, ", nuX.shape)
     if (saveX):
         X = coords
         if dim == 2:
+            print("dim is 2")
             xx = np.zeros((coords.shape[0],3))
             xx[:,0:2] = coords
             xx[:,-1] = z
             X = xx
         np.savez(savename+'_XnuX.npz',X=X,nu_X=nuX)
+        vtf.writeVTK(X,[nuX],['geneID'],savename+'_XnuX.vtk',polyData=None)
     
     # random shuffle to do random sample
     if (dim == 2):
@@ -181,18 +192,22 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
         coords = allInfo[:,0:2]
         nuX = allInfo[:,-1]
     elif (dim == 3):
-        allInfo = np.stack((coords[:,0],coords[:,1],coords[:,2]),axis=-1)
+        allInfo = np.stack((coords[:,0],coords[:,1],coords[:,2],nuX),axis=-1)
+        print("all Info shape, ", allInfo.shape)
         np.random.shuffle(allInfo)
         coords = allInfo[:,0:3]
         nuX = allInfo[:,-1]
     
     # divide into cubes of size sig
     if (dim == 2):
+        print("dim is 2")
         coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/sig).astype(int) # minimum number of cubes in x and y 
         totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1)
     elif (dim == 3):
-        coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/sig).astype(int) # minimum number of cubes in x and y 
-        totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1) + (np.max(coords_labels[:,2]) + 1)
+        coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/sig).astype(int) # minimum number of cubes in x and y
+        print("coords_labels shape, ", coords_labels.shape)
+        print("coords_labels max and min, ", np.max(coords_labels,axis=0))
+        totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1)*(np.max(coords_labels[:,2])+1)
     
     # coords_labels_tot gives the index of the cube for each of original measurements
     '''
@@ -218,8 +233,10 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
     # Numpy version 
     uInds,sample,counts = np.unique(coords_labels,return_index=True,return_counts=True,axis=0) # returns first occurrence of each cube 
     nuZ = nuX[sample] # returns first occurrence of mRNA in cube 
-    Z = coords[sample,...]
+    Z = coords[np.squeeze(sample),...]
+    print("Z shape, ", Z.shape)
     if dim == 2:
+        print("dim is 2")
         zz = np.zeros((Z.shape[0],3))
         zz[:,0:2] = Z
         zz[:,-1] = z
@@ -228,7 +245,7 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
     #nu_Z = makeOneHot(nuZ,maxVal=maxV,zeroBased=zeroBased)*coords.shape[0]/nuZ.shape[0] # weigh points with appropriate mass and make large array
     nu_Z = makeOneHot(nuZ,maxVal=maxV,zeroBased=zeroBased)*counts[...,None] # weigh particles based on number of MRNA in each cube
     nu_Z = nu_Z*coords.shape[0]/np.sum(nu_Z)
-    
+    print("nu_Z shape, ", nu_Z.shape)
     maxInd = np.argmax(nu_Z,axis=-1)+1
     vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_discrete.vtk',polyData=None)
     np.savez(savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_discrete.npz',Z=Z, nu_Z=nu_Z)
@@ -243,6 +260,7 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
         vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete_plus' + str(overhead) + '.vtk',polyData=None)
     elif (ztype == 'uniform'):
         nu_Z[:,:] = 1.0/(nu_Z.shape[-1]) # shape should be number of total values
+        nu_Z = nu_Z*counts[...,None]
         np.savez(savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_uniform.npz',Z=Z, nu_Z=nu_Z)
         maxInd = np.argmax(nu_Z,axis=-1)+1
         vtf.writeVTK(Z,[maxInd,np.sum(nu_Z,axis=-1)],['MAX_VAL_NU','TOTAL_MASS'],savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_uniform.vtk',polyData=None)

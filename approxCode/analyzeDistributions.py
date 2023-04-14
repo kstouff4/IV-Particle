@@ -128,3 +128,86 @@ def selectPlanes(particleNPZ,thick=0.05,ax=2,s=None,e=None):
             sInd += thick
             
     return
+
+def selectGenes(npzFile,geneInds,geneNames,savename,merge=False,maxVal=113,d=3):
+    '''
+    npzFile = with X and nu_X or Z and nu_Z where nu_X/nu_Z is either single number indicating gene ind or is N x L array
+    merge = True if npzFile is list and you want to read in all of them from list and merge genes together
+    
+    example (Barseq): 
+    npzFile = glob.glob('/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/Genes/slice[0-9][0-9].npz')
+    geneInds = [28,56,111,101,47]
+    geneNames = ['Rab3c','Gria1','Slc17a7','Dgkb','Nrsn1']
+    savename = '/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/MI_ResultsGenes/5highMI.npz'
+    merge = True
+    maxVal=113
+    '''
+    
+    if (merge):
+        npzF0 = npzFile[0]
+    else:
+        npzF0 = npzFile
+    
+    info = np.load(npzF0)
+    Z = info[info.files[0]]
+    nuZ = info[info.files[1]]
+    if (len(info.files) > 2):
+        nuZc = info[info.files[2]]
+    
+    Zs = []
+    nuZs = []
+    nuZcs = []
+    tot = 0
+    if (len(nuZ.shape) < 2 or nuZ.shape[-1] == 1):
+        if (np.min(nuZ) > 0):
+            nuZ = nuZ - 1
+        for ge in geneInds:
+            inds = nuZ == ge
+            print(inds.shape)
+            Zs.append(Z[np.squeeze(inds),...])
+            nuZs.append(nuZ[inds])
+            nuZcs.append(nuZc[inds])
+            tot += np.sum(inds)
+        ZsTot = np.zeros((tot,d))
+        nuZsTot = np.zeros((tot,1))
+        nuZcsTot = np.zeros((tot,1))
+        cnt = 0
+        for i in range(len(Zs)):
+            ZsTot[cnt:Zs[i].shape[0]+cnt,:] = Zs[i]
+            nuZsTot[cnt:nuZs[i].shape[0]+cnt] = nuZs[i][...,None]
+            nuZcsTot[cnt:nuZcs[i].shape[0]+cnt] = nuZcs[i][...,None]
+            cnt += Zs[i].shape[0]
+    np.savez(npzFile.replace('.npz','_' + str(geneInds) + '.npz'),X=ZsTot,nu_X=nuZsTot)
+    vtf.writeVTK(ZsTot,[nuZsTot,nuZcsTot],['GeneID','CellID'],npzFile.replace('.npz','_' + str(geneInds) + '.vtk'),polyData=None)
+    
+    return
+
+def mergeSlices(files,savename,d=3,center=False):
+    Z = []
+    nuZ = []
+    totNum = 0
+    for f in files:
+        info = np.load(f)
+        x = info['X']
+        nux = info['nu_X']
+        if (center):
+            minx = np.min(x,axis=0)
+            maxx = np.max(x,axis=0)
+            meanx = 0.5*(maxx + minx)
+            x = x - meanx
+        Z.append(x)
+        nuZ.append(nux)
+        totNum += x.shape[0]
+    print("total number is, ", totNum)
+    Zar = np.zeros((totNum,d))
+    nuZar = np.zeros((totNum,1))
+    cnt = 0
+    for z in range(len(Z)):
+        Zar[cnt:Z[z].shape[0]+cnt,...] = Z[z]
+        nuZar[cnt:nuZ[z].shape[0]+cnt] = nuZ[z]
+        cnt+=Z[z].shape[0]
+    np.savez(savename,X=Zar,nu_X=nuZar)
+    np.savez(savename.replace('.npz','_mm.npz'),X=Zar/1000.0,nu_X=nuZar)
+    return
+                                           
+                           
