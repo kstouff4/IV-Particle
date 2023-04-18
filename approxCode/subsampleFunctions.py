@@ -144,7 +144,7 @@ def makeSubsample(Xfile,sig,savename,xtype='discrete',ztype='semi-discrete',over
     
     return savename+'_originalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_semidiscrete.npz'
 
-def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete',ztype='semi-discrete',overhead=0.1,maxV=702,C=1.2,dim=3,z=0,saveX=True,zeroBased=True):
+def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete',ztype='semi-discrete',overhead=0.1,maxV=702,Co=1.2,dim=3,z=0,saveX=True,zeroBased=True,alpha=0.5):
     '''
     Sampling of same types as in makeSubsample, but with weighting geographically in subset
     
@@ -158,6 +158,7 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
     ztype \in {'discrete', 'semi-discrete', 'uniform'}
     
     '''
+    C = ((1.0/alpha)**3) * Co
     if (zeroBased is None):
         if (coordName == 'geneInd'):
             zeroBased = True
@@ -174,6 +175,11 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
     print(coords.shape)
     nuX = np.squeeze(info[nuName])
     print("nuX shape, ", nuX.shape)
+    if len(nuX.shape) > 1:
+        print("reducing nuX to max val")
+        nuX = np.argmax(nuX,axis=-1)
+        nuX = np.squeeze(nuX)
+        print("new nuX shape, ", nuX.shape)
     if (saveX):
         X = coords
         if dim == 2:
@@ -198,13 +204,13 @@ def makeSubsampleStratified(Xfile,coordName,nuName,sig,savename,xtype='discrete'
         coords = allInfo[:,0:3]
         nuX = allInfo[:,-1]
     
-    # divide into cubes of size sig
+    # divide into cubes of size sig*alpha
     if (dim == 2):
         print("dim is 2")
-        coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/sig).astype(int) # minimum number of cubes in x and y 
+        coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/(sig*alpha)).astype(int) # minimum number of cubes in x and y 
         totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1)
     elif (dim == 3):
-        coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/sig).astype(int) # minimum number of cubes in x and y
+        coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/(sig*alpha)).astype(int) # minimum number of cubes in x and y
         print("coords_labels shape, ", coords_labels.shape)
         print("coords_labels max and min, ", np.max(coords_labels,axis=0))
         totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1)*(np.max(coords_labels[:,2])+1)

@@ -174,18 +174,19 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     st = time.time()
     #C=1.2
     sig = sigma
+    print(sig)
     lossTrack = []
     
     process = psutil.Process(os.getpid())
 
-    def make_ranges(X, Z, epsX, epsZ,sig):
+    def make_ranges(X, Z, epsX, epsZ,sigP):
       # Here X and Z are torch tensors
         a = np.sqrt(3)
         Z_labels = grid_cluster(Z, epsZ) 
         Z_ranges, Z_centroids, _ = cluster_ranges_centroids(Z, Z_labels)
         #D = ((LazyTensor(Z_centroids[:, None, :]) - LazyTensor(Z_centroids[None, :, :])) ** 2).sum(dim=2)
         D = ((Z_centroids[:,None,:] - Z_centroids[None,:,:])**2).sum(dim=2)
-        keep = D <(a*epsZ+4* sig) ** 2
+        keep = D <(a*epsZ+4* sigP) ** 2
         rangesZZ_ij = from_matrix(Z_ranges, Z_ranges, keep)
         print(rangesZZ_ij[2].shape)
         areas = (Z_ranges[:, 1] - Z_ranges[:, 0])[:, None] * (Z_ranges[:, 1] 
@@ -200,7 +201,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         X_labels = grid_cluster(X,epsX)
         X_ranges, X_centroids, _ = cluster_ranges_centroids(X,X_labels)
         D = ((X_centroids[:,None,:] - X_centroids[None,:,:])**2).sum(dim=2)
-        keep = D <(a*epsX+4* sig) ** 2
+        keep = D <(a*epsX+4* sigP) ** 2
         rangesXX_ij = from_matrix(X_ranges, X_ranges, keep)
         print(rangesXX_ij[2].shape)
         areas = (X_ranges[:, 1] - X_ranges[:, 0])[:, None] * (X_ranges[:, 1] 
@@ -213,7 +214,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         print("")
         
         D = ((Z_centroids[:, None, :] - X_centroids[None, :, :]) ** 2).sum(dim=2)
-        keep = D < (a*(epsZ/2.0 + epsX/2.0)+4*sig)**2
+        keep = D < (a*(epsZ/2.0 + epsX/2.0)+4*sigP)**2
         rangesZX_ij = from_matrix(Z_ranges, X_ranges, keep)
         areas = (Z_ranges[:, 1] - Z_ranges[:, 0])[:, None] * (X_ranges[:, 1] 
                             - X_ranges[:, 0])[None, :]
@@ -231,8 +232,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         Lnu_X_i = Vi(tnuX)
         Lnu_X_j = Vj(tnuX)
         PXX_ij = (Lnu_X_i*Lnu_X_j).sum(dim=2)
-        for si in len(sig):
-            sigg = sig[si]
+        for si in range(len(sig)):
+            sigg = torch.tensor(sig[si]).type(dtype)
             D_ij = ((LX_i - LX_j)**2/sigg**2).sum(dim=2) 
             K_ijs = (- D_ij).exp()
             if si == 0:
@@ -251,20 +252,20 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     
             Lnu_Z_i= Vi(tZal_Z[3*len_Z::].view(-1,dim_nu_Z)**2)
             Lnu_Z_j= Vj(tZal_Z[3*len_Z::].view(-1,dim_nu_Z)**2)
-            for si in len(sig):
-                sigg = sig[si]
+            for si in range(len(sig)):
+                sigg = torch.tensor(sig[si]).type(dtype)
                 DZZ_ij = ((LZ_i - LZ_j)**2/sigg**2).sum(dim=2)  
                 KZZ_ijs = (- DZZ_ij).exp()  
                 if si == 0:
-                    KZZ_ij = KZZ_ij
+                    KZZ_ij = KZZ_ijs
                 else:
                     KZZ_ij += KZZ_ijs
             PZZ_ij = (Lnu_Z_i*Lnu_Z_j).sum(dim=2)
             KPZZ_ij = KZZ_ij*PZZ_ij
             KPZZ_ij.ranges = rangesZZ_ij
             
-            for si in len(sig):
-                sigg = sig[si]
+            for si in range(len(sig)):
+                sigg = torch.tensor(sig[si]).type(dtype)
                 DZX_ij = ((LZ_i - LX_j)**2/sigg**2).sum(dim=2)
                 KZX_ijs = (- DZX_ij).exp()
                 if si == 0:
@@ -290,8 +291,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         Lnu_X_i = Vi(tnuX)
         Lnu_X_j = Vj(tnuX)
         
-        for si in len(sig):
-            sigg = sig[si]
+        for si in range(len(sig)):
+            sigg = torch.tensor(sig[si]).type(dtype)
             D_ij = ((LX_i - LX_j)**2/sigg**2).sum(dim=2) 
             K_ijs = (- D_ij).exp()
             if si == 0:
@@ -306,8 +307,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         print('c=',c.detach())
 
         LZ_i, LZ_j= Vi(tZ), Vj(tZ)
-        for si in len(sig):
-            sigg = sig[si]
+        for si in range(len(sig)):
+            sigg = torch.tensor(sig[si]).type(dtype)
             DZZ_ij = ((LZ_i - LZ_j)**2/sigg**2).sum(dim=2)  
             KZZ_ijs = (- DZZ_ij).exp()
             if si == 0:
@@ -323,8 +324,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             KPZZ_ij.ranges=rangesZZ_ij
             L = KPZZ_ij.sum(dim=1).sum() + c
             
-            for si in len(sig):
-                sigg = sig[si]
+            for si in range(len(sig)):
+                sigg = torch.tensor(sig[si]).type(dtype)
                 DZX_ij = ((LZ_i - LX_j)**2/sig**2).sum(dim=2) 
                 KZX_ijs = (- DZX_ij).exp() 
                 if si == 0:
@@ -350,8 +351,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             print(process.memory_info().rss)  # in bytes
             GPUtil.showUtilization()
             
-            for si in len(sig):
-                sigg = sig[si]
+            for si in range(len(sig)):
+                sigg = torch.tensor(sig[si]).type(dtype)
                 DZX_ij = ((LZ_i - LX_j)**2/sigg**2).sum(dim=2) 
                 KZX_ijs = (- DZX_ij).exp() 
                 if si == 0:
