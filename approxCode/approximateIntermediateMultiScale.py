@@ -225,6 +225,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
 
     def make_loss(tX, tnuX, len_Z, dim_nu_Z, rangesXX_ij, rangesZZ_ij, rangesZX_ij):
         c = 0
+        coeff = (1.0/torch.sum(tnuX)).type(dtype)
         temptime = time.time()
         LX_i = LazyTensor(tX[:,None,:])
         LX_j = LazyTensor(tX[None,:,:])
@@ -243,7 +244,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
                 
         K_ij = K_ij*PXX_ij
         K_ij.ranges = rangesXX_ij
-        c +=  K_ij.sum(dim=1).sum()
+        c +=  coeff*(K_ij.sum(dim=1).sum())
         print('c=',c.detach())
 
         def loss(tZal_Z):
@@ -278,6 +279,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             KPZX_ij.ranges = rangesZX_ij
             
             L = KPZZ_ij.sum(dim=1).sum() - 2.0*KPZX_ij.sum(dim=1).sum()
+            L = L*coeff
             L.backward()
             L += c
             return L.detach(),c.detach()
@@ -285,6 +287,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     
     def make_loss2(tX, tnuX, tZ, dim_nu_Z, rangesXX_ij, rangesZZ_ij, rangesZX_ij):
         c = 0
+        coeff = (1.0/torch.sum(tnuX)).type(dtype)
         LX_i = LazyTensor(tX[:,None,:])
         LX_j = LazyTensor(tX[None,:,:])
         
@@ -303,7 +306,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         PXX_ij = (Lnu_X_i*Lnu_X_j).sum(dim=2)
         K_ij = K_ij*PXX_ij
         K_ij.ranges = rangesXX_ij
-        c +=  K_ij.sum(dim=1).sum()
+        c +=  coeff*(K_ij.sum(dim=1).sum())
         print('c=',c.detach())
 
         LZ_i, LZ_j= Vi(tZ), Vj(tZ)
@@ -322,7 +325,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             PZZ_ij = (Lnu_Z_i*Lnu_Z_j).sum(dim=2)
             KPZZ_ij = KZZ_ij*PZZ_ij
             KPZZ_ij.ranges=rangesZZ_ij
-            L = KPZZ_ij.sum(dim=1).sum() + c
+            L = coeff*(KPZZ_ij.sum(dim=1).sum()) + c
             
             for si in range(len(sig)):
                 sigg = torch.tensor(sig[si]).type(dtype)
@@ -337,7 +340,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             KPZX_ij = KZX_ij*PZX_ij
             KPZX_ij.ranges = rangesZX_ij
             
-            L -= 2.0*KPZX_ij.sum(dim=1).sum()
+            L -= 2.0*coeff*KPZX_ij.sum(dim=1).sum()
             return L.detach(),c.detach()
 
         def loss(tal_Z): 
@@ -365,6 +368,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             KPZX_ij.ranges = rangesZX_ij
             
             L = KPZZ_ij.sum(dim=1).sum() - 2.0*KPZX_ij.sum(dim=1).sum()
+            L = coeff*L
             L.backward()
             L += c
             return L.detach(),c.detach()
