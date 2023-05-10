@@ -399,9 +399,9 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             
             L = KPZZ_ij.sum(dim=1).sum() - 2.0*KPZX_ij.sum(dim=1).sum()
             L = L*coeff
-            L.backward()
+            #L.backward()
             L += c
-            return L.detach(),c.detach()
+            return L,c #L.detach(),c.detach()
     
         def lossOnly(tZal_Z):
             # z operation is still assumed to be the same (mixed distribution of labels)
@@ -548,9 +548,9 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             
             L = KPZZ_ij.sum(dim=1).sum() - 2.0*KPZX_ij.sum(dim=1).sum()
             L = coeff*L
-            L.backward()
+            #L.backward()
             L += c
-            return L.detach(),c.detach()
+            return L,c#L.detach(),c.detach()
 
         print("memory (bytes)")
         print(process.memory_info().rss)  # in bytes
@@ -650,9 +650,17 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             print("time for making loss is " + str(time.time() - temptime))
             
             def uloss(xu):
-                return sum([losses[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]]) for b in range(nb_bands)])
+                slosses_L,slosses_c = losses[0]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
+                for b in range(1,nb_bands):
+                    ll,cc = losses[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
+                    slosses_L += ll
+                    slosses_c += cc
+                return slosses_L,slosses_c
             def uloss_only(xu):
-                return sum([loss_onlys[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]]) for b in range(nb_bands)])
+                slosses_L = loss_onlys[0]([xu[0],xu[1][:,bands[0][0]:bands[0][1]]])
+                for b in range(1,nb_bands):
+                    slosses_L += loss_onlys[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
+                return slosses_L
             # rescale the loss according to how much you are expecting the variables to change by computing the gradient with respect to the variables
             loss_new, uvar_from_optvar, xopt = rescale_loss(uloss,uloss_only,xinit,[torch.tensor(sig[0]).type(dtype),torch.clone(xinit[-1].mean()).detach().type(dtype)])
             optimizer = torch.optim.LBFGS(xopt, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=5,tolerance_grad=1e-8,tolerance_change=1e-10)
@@ -668,9 +676,17 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
                 loss_onlys2.append(loss_only2)
             print("time for making loss 2 is " + str(time.time() - temptime))
             def uloss2(xu):
-                return sum([losses2[b]([xu[0][:,bands[b][0]:bands[b][1]]]) for b in range(nb_bands)])
+                slosses2_L, slosses2_c = losses2[0]([xu[0][:,bands[0][0]:bands[0][1]]])
+                for b in range(1,nb_bands):
+                    ll,cc = losses2[b]([xu[0][:,bands[b][0]:bands[b][1]]])
+                    slosses2_L += ll
+                    slosses2_c += cc
+                return slosses2_L,slosses2_c
             def uloss_only2(xu):
-                return sum([loss_onlys2[b]([xu[0][:,bands[b][0]:bands[b][1]]]) for b in range(nb_bands)])
+                sloss_onlys2_L = loss_onlys2[0]([xu[0][:,bands[0][0]:bands[0][1]]])
+                for b in range(1,nb_bands):
+                    sloss_onlys2_L += loss_onlys2[b]([xu[0][:,bands[b][0]:bands[b][1]]])
+                return sloss_onlys2_L
             loss_new2, uvar_from_optvar2, xopt2 = rescale_loss(uloss2,uloss_only2,xinit,[torch.clone(xinit[0].mean()).detach().type(dtype)])
 
             optimizer = torch.optim.LBFGS(xopt2, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=5,tolerance_grad=1e-8,tolerance_change=1e-10)
@@ -680,12 +696,14 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             optimizer.zero_grad()
             if flag == 'all':
                 L,c = loss_new(xopt)
+                L.backward()
                 print("xopt")
                 for o in xopt:
                     print(o.detach().cpu().numpy())
                 xuser = uvar_from_optvar(xopt)
             else:
                 L,c = loss_new2(xopt2)
+                L.backward()
                 print("xopt2")
                 for o in xopt2:
                     print(o.detach().cpu().numpy())
