@@ -107,38 +107,16 @@ def grid_cluster(x, size):
 
 # Helper Functions
 
-def reverseOneHot(nu_Z,indsToKeep,maxVal=673):
-    '''
-    assume IndsToKeep indicate the mapping of original labels
-    '''
-    nnuZ = np.zeros((nu_Z.shape[0],maxVal))
-    nnuZ[:,indsToKeep] = nu_Z
-    return nnuZ
-
-def oneHotMemorySave(nu_X,nu_Z,zeroBased=False):
-    nonZeros = np.sum(nu_Z,axis=0) # values with 0 have no counts
-    x = np.unique(nu_X).astype(int)
-    if not zeroBased:
-        x = x-1
-        print("subtracting")
-    nonZeros[x] += 1
-    indsToKeep = np.where(nonZeros > 0)
-    nnu_Z = nu_Z[:,indsToKeep[0]]
-    return nnu_Z,indsToKeep[0]
-
-def groupXbyLabelSave(nuX,X,indsToKeep,zeroBased=False):
-    d = len(indsToKeep) # Z has all of possible labels
-    listOfX = []
-    iTK = indsToKeep
-    if (not zeroBased):
-        iTK += 1
-    for i in iTK:
-        listOfX.append(X[np.squeeze(nuX == i),...])
-    return listOfX
-
 def getXinterZ(npzX,npzZ):
     '''
     Assume initial Z is already in one hot encoding for features
+    Make X into one hot encoding and if minimum is not 0, assume is 1 based
+    
+    Input:
+    npzX, npzX = npz files where first variable is spatial coordinates (Nxd) and second variable is features (Nxf)
+    
+    Output:
+    X,nuX,Z,nuZ = variables in npz files, both with spatial coordinates and full feature dimensions 
     '''
     xInfo = np.load(npzX)
     X = xInfo[xInfo.files[0]]
@@ -171,8 +149,8 @@ def getXinterZ(npzX,npzZ):
     
     return X,nuX,Z,nuZ
 
-def rescale_loss(loss,lossOnly,x,dmax):
-    # implement a change of variable of the loss for lbfg
+def rescale_loss(loss,x,dmax):
+    # implement a change of variable of the loss for lbfg based on choice of t = min(1,1/sum_of_gradients) for first step (lr=1)
     # x and dmax as suppose to be a list of tensors for each group of variables
     print("maximum changes, ")
     for d in dmax:
@@ -183,7 +161,7 @@ def rescale_loss(loss,lossOnly,x,dmax):
         xr.append((torch.clone(xh).detach()+(2*torch.rand(xh.shape).type(dtype)-1)*dmaxh).requires_grad_(True))
 
     # Compute the gradient at randomized intial point
-    L = lossOnly(xr)
+    L = loss(xr)
     L.backward()
 
     # Compute the scaling coefficient
@@ -245,6 +223,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     
     process = psutil.Process(os.getpid())
 
+    # Make Ranges based on torch tensors
     def make_ranges(X, Z, epsX, epsZ,sigP):
       # Here X and Z are torch tensors
         a = np.sqrt(3)
@@ -401,8 +380,9 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             L = L*coeff
             #L.backward()
             L += c
-            return L,c #L.detach(),c.detach()
+            return L #L.detach(),c.detach()
     
+        '''
         def lossOnly(tZal_Z):
             # z operation is still assumed to be the same (mixed distribution of labels)
             LZ_i, LZ_j = Vi(tZal_Z[0]), Vj(tZal_Z[0])
@@ -438,7 +418,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             L = L*coeff
             L += c
             return L
-        return loss,lossOnly
+         '''
+        return loss #,lossOnly
     
     def make_loss2(tX, tnuX, tZ, dim_nu_Z, rangesXX_ij, rangesZZ_ij, rangesZX_ij,coeff=torch.tensor(1.0).type(dtype)):
         c = 0
@@ -496,7 +477,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             
             L -= 2.0*coeff*KPZX_ij.sum(dim=1).sum()
             return L.detach(),c.detach()
-        
+        '''
         def lossOnly2(tal_Z):
             Lnu_Z_i, Lnu_Z_j = Vi(tal_Z[0]**2), Vj(tal_Z[0]**2)
 
@@ -521,6 +502,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             L = coeff*L
             L += c
             return L
+        '''
 
         def loss2(tal_Z): 
             Lnu_Z_i, Lnu_Z_j = Vi(tal_Z[0]**2), Vj(tal_Z[0]**2)
@@ -550,11 +532,11 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             L = coeff*L
             #L.backward()
             L += c
-            return L,c#L.detach(),c.detach()
+            return L #L.detach(),c.detach()
 
         print("memory (bytes)")
         print(process.memory_info().rss)  # in bytes
-        return loss2, lossOnly2
+        return loss2 #, lossOnly2
     
     # get X and Z: requires input initial sample
     X,nu_X,Z,nu_Z = getXinterZ(Xfile,Zfile)
@@ -629,8 +611,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     len_Z, dim_nu_Z = nu_Z.shape
     
     # if want to rescale loss such taht is equal to 1 (normalizing should be same with and without bands)
-    coeff = getInitialLoss(tX,tnu_X,tZ,tnu_Z,rangesXX,rangesZZ,rangesZX)
-    coeff = 1.0/coeff
+    #coeff = getInitialLoss(tX,tnu_X,tZ,tnu_Z,rangesXX,rangesZZ,rangesZX)
+    #coeff = 1.0/coeff
 
     # Optimization
     outerCost = []
@@ -640,54 +622,47 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         if flag == 'all':
             temptime = time.time()
             xinit = [torch.clone(tZp).detach(),torch.clone(tnu_Zp.pow(0.5)).detach()]
+            
             # loss bands
             losses = []
             loss_onlys = []
             for b in range(nb_bands):
-                loss,loss_only = make_loss(tX, tnu_X[:,bands[b][0]:bands[b][1]], len_Z, bands[b][1]-bands[b][0], rangesXX, rangesZZ, rangesZX,coeff=coeff)
+                loss = make_loss(tX, tnu_X[:,bands[b][0]:bands[b][1]].contiguous(), len_Z, bands[b][1]-bands[b][0], rangesXX, rangesZZ, rangesZX,coeff=coeff)
                 losses.append(loss)
-                loss_onlys.append(loss_only)
             print("time for making loss is " + str(time.time() - temptime))
             
             def uloss(xu):
-                slosses_L,slosses_c = losses[0]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
+                slosses_L = loss[0]([xu[0],xu[1][:,bands[0][0]:bands[0][1]]])
                 for b in range(1,nb_bands):
-                    ll,cc = losses[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
-                    slosses_L += ll
-                    slosses_c += cc
-                return slosses_L,slosses_c
-            def uloss_only(xu):
-                slosses_L = loss_onlys[0]([xu[0],xu[1][:,bands[0][0]:bands[0][1]]])
-                for b in range(1,nb_bands):
-                    slosses_L += loss_onlys[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
+                    slosses_L += loss[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
                 return slosses_L
+            def nuloss(xu):
+                beta = uloss(xinit)
+                return uloss(xu)/beta
             # rescale the loss according to how much you are expecting the variables to change by computing the gradient with respect to the variables
-            loss_new, uvar_from_optvar, xopt = rescale_loss(uloss,uloss_only,xinit,[torch.tensor(sig[0]).type(dtype),torch.clone(xinit[-1].mean()).detach().type(dtype)])
+            loss_new, uvar_from_optvar, xopt = rescale_loss(nuloss,xinit,[torch.tensor(sig[0]).type(dtype),torch.clone(xinit[-1].mean()).detach().type(dtype)])
             optimizer = torch.optim.LBFGS(xopt, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=5,tolerance_grad=1e-8,tolerance_change=1e-10)
         else:
             temptime = time.time()
             xinit = [torch.clone(tnu_Zp.pow(0.5)).detach()]
             # loss bands
             losses2 = []
-            loss_onlys2 = []
+
             for b in range(nb_bands):
-                loss2, loss_only2 = make_loss2(tX, tnu_X[:,bands[b][0]:bands[b][1]], tZp, bands[b][1]-bands[b][0], rangesXX, rangesZZ, rangesZX,coeff=coeff)
+                loss2 = make_loss2(tX, tnu_X[:,bands[b][0]:bands[b][1]].contiguous(), tZp, bands[b][1]-bands[b][0], rangesXX, rangesZZ, rangesZX,coeff=coeff)
                 losses2.append(loss2)
-                loss_onlys2.append(loss_only2)
             print("time for making loss 2 is " + str(time.time() - temptime))
+
             def uloss2(xu):
-                slosses2_L, slosses2_c = losses2[0]([xu[0][:,bands[0][0]:bands[0][1]]])
-                for b in range(1,nb_bands):
-                    ll,cc = losses2[b]([xu[0][:,bands[b][0]:bands[b][1]]])
-                    slosses2_L += ll
-                    slosses2_c += cc
-                return slosses2_L,slosses2_c
-            def uloss_only2(xu):
-                sloss_onlys2_L = loss_onlys2[0]([xu[0][:,bands[0][0]:bands[0][1]]])
+                sloss_onlys2_L = losses2[0]([xu[0][:,bands[0][0]:bands[0][1]]])
                 for b in range(1,nb_bands):
                     sloss_onlys2_L += loss_onlys2[b]([xu[0][:,bands[b][0]:bands[b][1]]])
                 return sloss_onlys2_L
-            loss_new2, uvar_from_optvar2, xopt2 = rescale_loss(uloss2,uloss_only2,xinit,[torch.clone(xinit[0].mean()).detach().type(dtype)])
+            def nuloss2(xu):
+                beta = uloss2(xinit)
+                return uloss2(xu)/beta
+            
+            loss_new2, uvar_from_optvar2, xopt2 = rescale_loss(nuloss2,xinit,[torch.clone(xinit[0].mean()).detach().type(dtype)])
 
             optimizer = torch.optim.LBFGS(xopt2, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=5,tolerance_grad=1e-8,tolerance_change=1e-10)
         
@@ -695,14 +670,14 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         def closure():
             optimizer.zero_grad()
             if flag == 'all':
-                L,c = loss_new(xopt)
+                L = loss_new(xopt)
                 L.backward()
                 print("xopt")
                 for o in xopt:
                     print(o.detach().cpu().numpy())
                 xuser = uvar_from_optvar(xopt)
             else:
-                L,c = loss_new2(xopt2)
+                L = loss_new2(xopt2)
                 L.backward()
                 print("xopt2")
                 for o in xopt2:
@@ -710,8 +685,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
                 xuser = uvar_from_optvar2(xopt2)
             
             print("error is ", L.detach().cpu().numpy())
-            print("relative error loss", L.detach().cpu().numpy()/c.detach().cpu().numpy())
-            lossTrack.append(L.detach().cpu().numpy()/c.detach().cpu().numpy())
+            lossTrack.append(L.detach().cpu().numpy())
             print("alpha: ")
             for o in xuser:
                 print(o.detach().cpu().numpy())
