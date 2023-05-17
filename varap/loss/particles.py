@@ -5,7 +5,7 @@ from varap import dtype
 
 
 class ParticleLoss_full():
-    def __init__(self, sig, X, nu_X, slice=True):
+    def __init__(self, sig, X, nu_X, bw=-1):
 
         self.dtype = dtype
 
@@ -13,7 +13,7 @@ class ParticleLoss_full():
         self.X = X
         self.nu_X = nu_X
 
-        self.loss = self.make_loss() if not slice else self.slice_it()
+        self.loss = self.make_loss() if (bw < 0) else self.slice_it(bw)
 
     def make_loss(self):
         tx = torch.tensor(self.X).type(self.dtype).contiguous()
@@ -73,7 +73,7 @@ class ParticleLoss_restricted():
         self.Z = Z
         self.nu_X = nu_X
 
-        self.loss = self.make_loss() if (bw > 0) else self.slice_it(bw)
+        self.loss = self.make_loss() if (bw < 0) else self.slice_it(bw)
 
     def make_loss(self):
         tx = torch.tensor(self.X).type(dtype).contiguous()
