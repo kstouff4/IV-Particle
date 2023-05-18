@@ -12,14 +12,51 @@ torch.set_default_tensor_type(dtype)
 fpath = '../data/'
 Data = 'Allen'
 
+outfile = 'out'
+
 HZ, Hnu_Z, LZ, Lnu_Z = load(fpath, Data)
 
 
 bw = 75
 sig = .4
 
-L = ParticleLoss_restricted(sig, HZ, Hnu_Z, LZ, bw=bw)
-Z, nu_Z = optimize(LZ, Lnu_Z, L.loss, sig, flag='restricted')
+## First step ##
 
+# Define loss functions
+L = ParticleLoss_restricted(sig, HZ, Hnu_Z, LZ, bw=bw)
+
+# Define initial values
+x_init = [torch.tensor(Lnu_Z).type(dtype).sqrt()]
+print("x_init ", x_init)
+print(x_init[0].type())
+
+dxmax = [x_init[0].mean()]
+print(dxmax[0].type())
+
+def callback_restricted(xu):
+    nZ = Z
+    nnu_Z = xu[0].detach().cpu().numpy() ** 2
+    np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
+    return nZ, nnu_Z
+
+Z, nu_Z = optimize(LZ, Lnu_Z, L.loss, sig, flag='restricted', callback=callback_restricted)
+
+## Second step ##
+
+# Define loss functions
 L = ParticleLoss_full(sig, HZ, Hnu_Z, bw=bw)
-optimize(Z, nu_Z, L.loss, sig, flag='all')
+
+# Define initial values
+x_init = [torch.tensor(Z).type(dtype), torch.tensor(nu_Z).type(dtype).sqrt()]
+print("x_init ", x_init)
+
+dxmax = [sig, x_init[1].mean()]
+print(dxmax)
+
+def callback_all(xu):
+    nZ = xu[0].detach().cpu().numpy()
+    nnu_Z = xu[1].detach().cpu().numpy() ** 2
+    np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
+    return nZ, nnu_Z
+
+optimize(Z, nu_Z, L.loss, sig, flag='all', callback=callback_all)
