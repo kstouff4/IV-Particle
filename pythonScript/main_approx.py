@@ -23,7 +23,7 @@ sig = .4
 ## First step ##
 
 # Define loss functions
-L = ParticleLoss_restricted(sig, HZ, Hnu_Z, LZ, bw=bw)
+L_restricted = ParticleLoss_restricted(sig, HZ, Hnu_Z, LZ, bw=bw)
 
 # Define initial values
 x_init = [torch.tensor(Lnu_Z).type(dtype).sqrt()]
@@ -39,12 +39,12 @@ def callback_restricted(xu):
     np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
     return nZ, nnu_Z
 
-Z, nu_Z = optimize(LZ, Lnu_Z, L.loss, sig, flag='restricted', callback=callback_restricted)
+Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, callback=callback_restricted)
 
 ## Second step ##
 
 # Define loss functions
-L = ParticleLoss_full(sig, HZ, Hnu_Z, bw=bw)
+L_all = ParticleLoss_full(sig, HZ, Hnu_Z, bw=bw)
 
 # Define initial values
 x_init = [torch.tensor(Z).type(dtype), torch.tensor(nu_Z).type(dtype).sqrt()]
@@ -59,4 +59,4 @@ def callback_all(xu):
     np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
     return nZ, nnu_Z
 
-optimize(Z, nu_Z, L.loss, sig, flag='all', callback=callback_all)
+optimize(L_all.loss, x_init, dxmax, flag='all', callback=callback_all)
