@@ -39,7 +39,7 @@ def callback_restricted(xu):
     np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
     return nZ, nnu_Z
 
-Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, callback=callback_restricted)
+Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, nb_iter=20, callback=callback_restricted)
 
 ## Second step ##
 
@@ -59,4 +59,4 @@ def callback_all(xu):
     np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
     return nZ, nnu_Z
 
-optimize(L_all.loss, x_init, dxmax, flag='all', callback=callback_all)
+optimize(L_all.loss, x_init, dxmax, nb_iter=20, callback=callback_all)
