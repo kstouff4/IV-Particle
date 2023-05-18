@@ -34,7 +34,7 @@ dxmax = [x_init[0].mean()]
 print(dxmax[0].type())
 
 def callback_restricted(xu):
-    nZ = Z
+    nZ = LZ
     nnu_Z = xu[0].detach().cpu().numpy() ** 2
     np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
     return nZ, nnu_Z
