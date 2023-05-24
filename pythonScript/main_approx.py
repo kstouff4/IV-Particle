@@ -1,4 +1,7 @@
-from varap.io.load_allen import load
+import sys
+from sys import path as sys_path
+sys_path.append('../')
+from varap.io.load_allen import load,loadFromPath
 from varap.loss.particles import ParticleLoss_full, ParticleLoss_restricted
 from varap.optim.band import optimize
 
@@ -10,15 +13,16 @@ torch.set_default_tensor_type(dtype)
 
 # fpath = '/content/drive/My Drive/Kaitlin/'
 fpath = '../data/'
-Data = 'Allen'
+fpathH = fpath + 'AllenAtlas_ZnuZ_sig0.1.npz'
+fpathL = fpath + 'AllenAtlas_ZnuZinit_sig0.2_originalZnu_ZwC2.37037037037037_sig0.2_uniform.npz'
 
-outfile = 'out'
+outfile = 'AllenAtlas_out_sig0.2'
 
-HZ, Hnu_Z, LZ, Lnu_Z = load(fpath, Data)
+HZ, Hnu_Z, LZ, Lnu_Z = loadFromPath(fpathH, fpathL)
 
 
 bw = 75
-sig = .4
+sig = .2
 
 ## First step ##
 

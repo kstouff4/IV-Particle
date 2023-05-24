@@ -21,3 +21,23 @@ def load(fpath, Data):
   print("LZ.shape :", Lnu_Z.shape)
 
   return (HZ, Hnu_Z, LZ, Lnu_Z)
+
+def loadFromPath(fpathH,fpathL):
+    b = np.load(fpathH)
+    print(b.files)
+
+    HZ = b[b.files[0]]
+    print("HZ.shape :", HZ.shape)
+
+    Hnu_Z = b[b.files[1]]
+    print("Hnu_Z.shape:  ", Hnu_Z.shape)
+
+    b = np.load(fpathL)
+    print(b.files)
+    LZ = b[b.files[0]]
+    print("LZ.shape :", LZ.shape)
+
+    Lnu_Z = b[b.files[1]]
+    print("LZ.shape :", Lnu_Z.shape)
+
+    return (HZ, Hnu_Z, LZ, Lnu_Z)
