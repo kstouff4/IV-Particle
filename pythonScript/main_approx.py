@@ -4,6 +4,7 @@ sys_path.append('../')
 from varap.io.load_allen import load,loadFromPath
 from varap.loss.particles import ParticleLoss_full, ParticleLoss_restricted
 from varap.optim.band import optimize
+from varap.io.writeOut import writeParticleVTK
 
 import numpy as np
 import torch
@@ -64,3 +65,4 @@ def callback_all(xu):
     return nZ, nnu_Z
 
 optimize(L_all.loss, x_init, dxmax, nb_iter=20, callback=callback_all)
+writeParticleVTK(fpath+outfile+'.npz')
