@@ -5,6 +5,7 @@ from sys import path as sys_path
 sys_path.append('../utils/')
 from subSample import *
 import os
+import pickle
 
 class Allen3DMerfishLoader:
     
@@ -16,21 +17,25 @@ class Allen3DMerfishLoader:
         deltaF = true if features are encoded with index of feature dimension rather than size numF vector
         dimEff = effective dimension of data (2 if filenames represent slices, 3 if represent slabs)
         '''
-        self.filenames = glob.glob(rootDir + '*Xnu*.npz')
-        self.res = res # x,y,z resolution as list
-        if numF is not None:
-            self.numFeatures = numF
+        if ('.pkl' in rootDir):
+            with open(rootDir) as f:  # Python 3: open(..., 'rb')
+                self.filenames, self.res, self.sizes,self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample = pickle.load(f)
         else:
-            self.numFeatures = None
-        
-        self.deltaF = deltaF
-        self.sizes = None
-        if dimEff is not None:
-            self.dimEff = dimEff
-        else:
-            self.dimEff = None
-        
-        self.filenames_subsample = None
+            self.filenames = glob.glob(rootDir + '*Xnu*.npz')
+            self.res = res # x,y,z resolution as list
+            if numF is not None:
+                self.numFeatures = numF
+            else:
+                self.numFeatures = None
+
+            self.deltaF = deltaF
+            self.sizes = None
+            if dimEff is not None:
+                self.dimEff = dimEff
+            else:
+                self.dimEff = None
+
+            self.filenames_subsample = None
     
     def getSizes(self):
         '''
@@ -73,6 +78,26 @@ class Allen3DMerfishLoader:
         print("set sizes: ", self.sizes)
         print("set features: ", self.numFeatures)
         return max(self.sizes), self.numFeatures
+    
+    def getNumberOfFiles(self):
+        return len(self.sizes)
+    
+    def getFilename(self,index):
+        return self.filenames[index]
+    
+    def getFilename_subsample(self,index):
+        return self.filenames_subsample[index]
+    
+    def getHighLowPair(self,index):
+        if self.filenames_subsample is None:
+            print("No initialization complete. Please call subsample on high resolution data.")
+            return
+        else:
+            X,nuX = self.getSlice(index)
+            info = np.load(self.filenames_subsample[index])
+            Z = info[info.files[0]]
+            nuZ = info[info.files[1]]
+            return X,nuX,Z,nuZ
                 
                 
     def getSlice(self,index):
@@ -129,7 +154,11 @@ class Allen3DMerfishLoader:
         print("starting number of particles, ", sum(self.sizes))
         print("target number of particles, ", count)
         return
-        
+    
+    def saveToPKL(self,outpath):
+        with open(outpath, 'w') as f:  # Python 3: open(..., 'wb')
+            pickle.dump([self.filenames, self.res, self.sizes, self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample], f)
+        return
 
 if __name__ == '__main__':
     a = Allen3DMerfishLoader('/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX_Aligned/top20MI/',[0,0,0.100])
