@@ -1,16 +1,22 @@
 import glob
 import numpy as np
+import sys
+from sys import path as sys_path
+sys_path.append('../utils/')
+from subSample import *
+import os
 
 class Allen3DMerfishLoader:
     
-    def __init__(self,rootDir,res,numF=None,deltaF=False):
+    def __init__(self,rootDir,res,dimEff=None,numF=None,deltaF=False):
         '''
         rootDir = directory with XnuX.npz files for each slice
         res = [x,y,z] resolution; x = 0 if finest resolution is unknown
         numF = number of feature dimensions
         deltaF = true if features are encoded with index of feature dimension rather than size numF vector
+        dimEff = effective dimension of data (2 if filenames represent slices, 3 if represent slabs)
         '''
-        self.filenames = glob.glob(rootDir + '*X.npz')
+        self.filenames = glob.glob(rootDir + '*Xnu*.npz')
         self.res = res # x,y,z resolution as list
         if numF is not None:
             self.numFeatures = numF
@@ -19,6 +25,12 @@ class Allen3DMerfishLoader:
         
         self.deltaF = deltaF
         self.sizes = None
+        if dimEff is not None:
+            self.dimEff = dimEff
+        else:
+            self.dimEff = None
+        
+        self.filenames_subsample = None
     
     def getSizes(self):
         '''
@@ -35,9 +47,17 @@ class Allen3DMerfishLoader:
         for f in self.filenames:
             n = np.load(f)
             sizes.append(n[n.files[0]].shape[0])
+            if (self.dimEff is None):
+                zCoordFirst = n[n.files[0]][0,-1]
+                if (np.sum(n[n.files[0]][:,-1] - zCoordFirst) == 0):
+                    self.dimEff = 2
+                else:
+                    self.dimEff = 3
+                print("set dimEff: ", self.dimEff)
+                
             
             # assume discrete if only one value stored 
-            if len(n[n.files[1]].shape) < 2 or n[n.files[1]].shape[1] == 1 or deltaF:
+            if len(n[n.files[1]].shape) < 2 or n[n.files[1]].shape[1] == 1 or self.deltaF:
                 uniqueF.append(np.unique(n[n.files[1]]))
             
             else:
@@ -50,6 +70,8 @@ class Allen3DMerfishLoader:
             self.numFeatures = len(np.unique(np.asarray(uniqueF)))
         
         self.sizes = sizes
+        print("set sizes: ", self.sizes)
+        print("set features: ", self.numFeatures)
         return max(self.sizes), self.numFeatures
                 
                 
@@ -63,22 +85,58 @@ class Allen3DMerfishLoader:
         features = info[info.files[1]]
         return coordinates, features
     
-    def subSample(self,outpath,resolution,uniform=True):
+    def subSampleRandom(self,outpath,resolution,overhead=0.1):
         '''
         subsample each of datasets per file in filenames and write in outpath 
         subsample will be done with given resolution
         
         two choices of sampling: random sampling for initialization or stratified sampling with uniform distribution over features
         '''
+        if (not os.path.exists(outpath)):
+            os.mkdir(outpath) 
         
+        fs = []
+        count = 0
+        for i in range(len(self.filenames)):
+            X,nuX = self.getSlice(i)
+            Z,nuZ = makeRandomSubSample(X, nuX, resolution, self.numFeatures,C=1.2,dimEff=self.dimEff)
+            if (overhead > 0.0):
+                Z,nuZ = addOverhead(Z,nuZ,overhead=overhead)
+            sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_RS_o' + str(overhead) + '.npz'
+            fs.append(sn)
+            np.savez(sn,Z=Z,nu_Z=nuZ)
+        self.filenames_subsample = fs
+        print("starting number of particles, ", sum(self.sizes))
+        print("target number of particles, ", count)
+        return
+    
+    def subSampleStratified(self,outpath,resolution,alpha=0.75):
+        
+        if (not os.path.exists(outpath)):
+            os.mkdir(outpath) 
+        
+        fs = []
+        count = 0
+        for i in range(len(self.filenames)):
+            X,nuX = self.getSlice(i)
+            Z,nuZ = makeStratifiedSubSample(X,nu_X,resolution,self.numFeatures,alpha=alpha)
+            Z,nuZ = makeUniform(Z,nuZ)
+            count += Z.shape[0]
+            sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_US.npz'
+            fs.append(sn)
+            np.savez(sn,Z=Z,nu_Z=nuZ)
+        self.filenames_subsample = fs
+        print("starting number of particles, ", sum(self.sizes))
+        print("target number of particles, ", count)
         return
         
 
 if __name__ == '__main__':
-    a = Allen3DMerfishLoader('/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX_Aligned/',[0,0,0.100])
+    a = Allen3DMerfishLoader('/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX_Aligned/top20MI/',[0,0,0.100])
     print("filenames are: ", len(a.filenames))
     particles,features = a.getSizes()
     print(a.sizes)
     print(a.numFeatures)
+    print(sum(a.sizes))
     
     

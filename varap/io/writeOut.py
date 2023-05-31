@@ -52,16 +52,20 @@ def writeVTK(YXZ,features,featureNames,savename,polyData=None,fields=None,fieldN
         f_out.writelines(f_out_data)
     return
 
-def writeParticleVTK(npzfile):
+def writeParticleVTK(npzfile,condense=False):
     x = np.load(npzfile)
     X = x[x.files[0]]
     nuX = x[x.files[1]]
     
-    imageNames = ['Weight','Maximum_Feature_Dimension']
+    imageNames = ['Weight','Maximum_Feature_Dimension','Entropy']
     imageVals = [np.sum(nuX,axis=-1),np.argmax(nuX,axis=-1)]
     zetaX = nuX/np.sum(nuX,axis=-1)[...,None]
-    for f in range(nuX.shape[-1]):
-        imageNames.append('Feature_' + str(f) + '_Probabilities')
-        imageVals.append(zetaX[:,f])
+    e = np.zeros_like(zetaX)
+    e[zetaX > 0] = zetaX[zetaX > 0]*np.log(zetaX[zetaX > 0])
+    imageVals.append(np.sum(e,axis=-1))
+    if not condense:  
+        for f in range(nuX.shape[-1]):
+            imageNames.append('Feature_' + str(f) + '_Probabilities')
+            imageVals.append(zetaX[:,f])
     writeVTK(X,imageVals,imageNames,npzfile.replace('.npz','.vtk'))
     return
