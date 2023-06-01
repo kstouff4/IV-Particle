@@ -74,7 +74,7 @@ class ParticleLoss_restricted():
         self.Z = Z
         self.nu_X = nu_X
 
-        self.loss = self.make_loss() if (bw < 0) else self.slice_it(bw)
+        self.loss = self.make_loss() if (bw < 0 or self.nu_X.shape[1] <= bw) else self.slice_it(bw)
 
     def make_loss(self, X, nu_X, Z):
         tx = torch.tensor(X).type(dtype).contiguous()
