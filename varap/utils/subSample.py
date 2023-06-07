@@ -56,21 +56,18 @@ def makeUniform(Z,nu_Z):
     nnu_Z = nnu_Z*(np.sum(nu_Z,axis=-1)[...,None])
     return nnu_Z
 
-def makeStratifiedSubSample(X,nu_X,sig,maxV,alpha=0.75):
+def makeStratifiedSubSample(X,nuX,sig,maxV,alpha=0.75):
     '''
     Sample 1 point at random from a cube of size (sigma*alpha)^3
     Returns the feature values associated with the original point sampled, reweighted to reflect total weight in cube
     No points are returned for cubes with 0 total weight
     '''
-
-    info = np.load(Xfile)
-    coords = info[info.files[0]]
-    nuX = np.squeeze(info[info.files[1]])
+    coords = X
     indOriginal = np.arange(nuX.shape[0])
     allInfo = np.stack((coords[:,0],coords[:,1],coords[:,2],indOriginal),axis=-1)
     np.random.shuffle(allInfo)
     coords = allInfo[:,0:3]
-    nuX = nuX[allInfo[:,-1],...]
+    nuX = nuX[allInfo[:,-1].astype(int),...]
     if nuX.shape[-1] < maxV or len(nuX.shape) < 2:
         nuXo = np.zeros((nuX.shape[0],2))
         nuXo = nuXo + 0.5

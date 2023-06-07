@@ -3,7 +3,7 @@ import numpy as np
 import sys
 from sys import path as sys_path
 sys_path.append('../utils/')
-from subSample import *
+from varap.utils.subSample import *
 import os
 import pickle
 
@@ -21,7 +21,7 @@ class Allen3DMerfishLoader:
             with open(rootDir) as f:  # Python 3: open(..., 'rb')
                 self.filenames, self.res, self.sizes,self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample = pickle.load(f)
         else:
-            self.filenames = glob.glob(rootDir + '*Xnu*.npz')
+            self.filenames = glob.glob(rootDir + '*Xnu*npz.npz')
             self.res = res # x,y,z resolution as list
             if numF is not None:
                 self.numFeatures = numF
@@ -144,8 +144,8 @@ class Allen3DMerfishLoader:
         count = 0
         for i in range(len(self.filenames)):
             X,nuX = self.getSlice(i)
-            Z,nuZ = makeStratifiedSubSample(X,nu_X,resolution,self.numFeatures,alpha=alpha)
-            Z,nuZ = makeUniform(Z,nuZ)
+            Z,nuZ = makeStratifiedSubSample(X,nuX,resolution,self.numFeatures,alpha=alpha)
+            nuZ = makeUniform(Z,nuZ)
             count += Z.shape[0]
             sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_US.npz'
             fs.append(sn)
@@ -155,8 +155,16 @@ class Allen3DMerfishLoader:
         print("target number of particles, ", count)
         return
     
+    def retrieveSubSampleStratified(self,outpath,resolution,alpha=0.75):
+        fs = []
+        for i in range(len(self.filenames)):
+            sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_US.npz'
+            fs.append(sn)
+        self.filenames_subsample = fs
+        return
+    
     def saveToPKL(self,outpath):
-        with open(outpath, 'w') as f:  # Python 3: open(..., 'wb')
+        with open(outpath, 'wb') as f:  # Python 3: open(..., 'wb')
             pickle.dump([self.filenames, self.res, self.sizes, self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample], f)
         return
 
