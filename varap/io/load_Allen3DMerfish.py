@@ -1,9 +1,6 @@
 import glob
-import numpy as np
-import sys
-from sys import path as sys_path
-sys_path.append('../utils/')
-from subSample import *
+
+from varap.utils.subSample import *
 import os
 import pickle
 
@@ -144,7 +141,7 @@ class Allen3DMerfishLoader:
         count = 0
         for i in range(len(self.filenames)):
             X,nuX = self.getSlice(i)
-            Z,nuZ = makeStratifiedSubSample(X,nu_X,resolution,self.numFeatures,alpha=alpha)
+            Z,nuZ = makeStratifiedSubSample(X,nuX,resolution,self.numFeatures,alpha=alpha)
             Z,nuZ = makeUniform(Z,nuZ)
             count += Z.shape[0]
             sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_US.npz'
