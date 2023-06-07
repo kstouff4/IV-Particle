@@ -14,14 +14,15 @@ torch.set_default_tensor_type(dtype)
 
 # fpath = '/content/drive/My Drive/Kaitlin/'
 fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX_Aligned/top20MI/'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZnuX_Aligned/top20MI/sig0.025/'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZnuZ_Aligned/top20MI/sig0.025/'
 
 bw = 20
 sig = .025
 
 a = Allen3DMerfishLoader(fpath,[0,0,0.100])
 particles,features = a.getSizes()
-a.subSampleStratified(opath,sig,alpha=0.75)
+#a.subSampleStratified(opath,sig,alpha=0.75)
+a.retrieveSubSampleStratified(opath,sig,alpha=0.75)
 a.saveToPKL(opath + 'subsampledObject.pkl')
 
 ## First step ##
