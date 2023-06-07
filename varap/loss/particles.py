@@ -1,3 +1,5 @@
+import math
+
 import torch
 from pykeops.torch import Vi, Vj
 from pykeops.torch.cluster import grid_cluster, cluster_ranges_centroids, from_matrix, sort_clusters
@@ -36,7 +38,7 @@ class ParticleLoss_ranges():
         '''
 
         denZ = min(Z.shape[0] / Npart, Nmax)
-        rangeOfData = torch.max(Z, axis=0).values- torch.min(Z, axis=0).values
+        rangeOfData = torch.max(Z, axis=0).values - torch.min(Z, axis=0).values
         numDimNonzero = torch.sum(rangeOfData > 0)
 
         if rangeOfData[-1] == 0:
@@ -58,7 +60,7 @@ class ParticleLoss_ranges():
         and not feature (could be changed when genes expression is diffrenten accross space)
         """
         # Here X and Z are torch tensors
-        a = torch.sqrt(torch.tensor(3.))
+        a = torch.tensor(3.).sqrt()
 
         # Ranges for Z
         epsZ = self.makeEps(Z, 2500, 1000)
@@ -155,7 +157,7 @@ class ParticleLoss_full():
 
     def slice_it(self, bw):
 
-        nb_bands = int(self.nu_X.shape[1] / bw) + 1
+        nb_bands = math.ceil(self.nu_X.shape[1] / bw)
         bands = [(i * bw, min((i + 1) * bw, self.nu_X.shape[1])) for i in range(nb_bands)]
 
         ltmploss = [self.make_loss(self.X,
@@ -230,7 +232,7 @@ class ParticleLoss_restricted():
         return self.loss(*args)
 
     def slice_it(self, bw):
-        nb_bands = int(self.nu_X.shape[1] / bw) + 1
+        nb_bands = math.ceil(self.nu_X.shape[1] / bw)
         bands = [(i * bw, min((i + 1) * bw, self.nu_X.shape[1])) for i in range(nb_bands)]
 
         ltmploss = [self.make_loss(self.X,
@@ -255,18 +257,24 @@ if __name__ == '__main__':
     sig = torch.tensor([1.]).cuda()
 
     L = ParticleLoss_restricted(sig, X, nu_X, Z)
-    L.loss([nu_Z])
+    print(L.loss([nu_Z]))
 
-    L = ParticleLoss_full(sig, X, nu_X)
-    L.loss([Z, nu_Z])
+    # L = ParticleLoss_full(sig, X, nu_X)
+    # L.loss([Z, nu_Z])
 
     ranges = ParticleLoss_ranges(sig, X, nu_X, Z, nu_Z)
 
     L = ParticleLoss_restricted(sig, X, nu_X, Z, ranges=ranges)
-    L.loss([nu_Z])
+    print(L.loss([nu_Z]))
 
-    L = ParticleLoss_full(sig, X, nu_X, ranges=ranges)
-    L.loss([Z, nu_Z])
+    # L = ParticleLoss_full(sig, X, nu_X, ranges=ranges)
+    # L.loss([Z, nu_Z])
+
+    L = ParticleLoss_restricted(sig, X, nu_X, Z, bw=10)
+    print(L.loss([nu_Z]))
+
+    L = ParticleLoss_restricted(sig, X, nu_X, Z, bw=10, ranges=ranges)
+    print(L.loss([nu_Z]))
 
     #L.range_it(Z, nu_Z)
     pass
