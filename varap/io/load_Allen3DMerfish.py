@@ -1,8 +1,5 @@
 import glob
-import numpy as np
-import sys
-from sys import path as sys_path
-sys_path.append('../utils/')
+
 from varap.utils.subSample import *
 import os
 import pickle

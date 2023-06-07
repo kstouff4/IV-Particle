@@ -1,7 +1,8 @@
 import sys
 from sys import path as sys_path
 sys_path.append('../')
-from varap.io.load_Allen3DMERFISH import Allen3DMerfishLoader
+
+from varap.io.load_Allen3DMerfish import Allen3DMerfishLoader
 from varap.loss.particles import ParticleLoss_full, ParticleLoss_restricted
 from varap.optim.band import optimize
 from varap.io.writeOut import writeParticleVTK
