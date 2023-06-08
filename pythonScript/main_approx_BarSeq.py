@@ -8,7 +8,7 @@ from varap.optim.band import optimize
 from varap.io.writeOut import writeParticleVTK
 
 import numpy as np
-import torch
+import torch 
 
 dtype = torch.cuda.FloatTensor
 torch.set_default_tensor_type(dtype)
@@ -20,7 +20,7 @@ opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/
 bw = 10
 sig = .025
 
-genes = np.load(fpath + 'geneList.npz',allow_pickle=True)
+genes = np.load(fpath.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
 genes = genes[genes.files[1]]
 genes = list(genes)
 
@@ -31,7 +31,7 @@ a = BarSeqLoader(fpath,[0,0,0.200],featNames=genes)
 # Define loss functions
 numFiles = a.getNumberOfFiles()
 
-for f in range(numFiles):
+for f in range(1):
     nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(f)
     HZ = torch.tensor(nHZ).type(dtype)
     Hnu_Z = torch.tensor(nHnu_Z).type(dtype)
@@ -40,12 +40,16 @@ for f in range(numFiles):
     
     outfile = a.getFilename_subsample(f).split('/')[-1].replace('.npz','_optimal')
     ranges = ParticleLoss_ranges(sig, HZ, Hnu_Z, LZ, Lnu_Z)
+    print(torch.allclose(LZ,ranges.Z))
     
     # reset variables to sorted versions
     HZ = ranges.X
     Hnu_Z = ranges.nu_X
     LZ = ranges.Z
     Lnu_Z = ranges.nu_Z
+
+    np.savez_compressed(opath + outfile + '_initialSort',Z=LZ.detach().cpu().numpy(),nu_Z=Lnu_Z.detach().cpu().numpy())
+    writeParticleVTK(opath+outfile+'_initialSort.npz',featNames=genes)
     
     L_restricted = ParticleLoss_restricted(sig, HZ, Hnu_Z, LZ, bw=bw,ranges=ranges)
 
@@ -63,7 +67,8 @@ for f in range(numFiles):
         np.savez_compressed(opath + outfile + '_restricted', Z=nZ, nu_Z=nnu_Z)
         return nZ, nnu_Z
 
-    Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, nb_iter=10, callback=callback_restricted)
+    Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, nb_iter=2, callback=callback_restricted)
+    writeParticleVTK(opath+outfile+'_restricted.npz',featNames=genes)
 
     ## Second step ##
 
@@ -83,5 +88,5 @@ for f in range(numFiles):
         np.savez_compressed(opath + outfile + '_all', Z=nZ, nu_Z=nnu_Z)
         return nZ, nnu_Z
 
-    optimize(L_all.loss, x_init, dxmax, nb_iter=20, callback=callback_all)
+    optimize(L_all.loss, x_init, dxmax, nb_iter=4, callback=callback_all)
     writeParticleVTK(opath+outfile+'_all.npz',condense=False,featNames=genes)

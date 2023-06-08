@@ -23,6 +23,8 @@ class BarSeqLoader:
         if ('.pkl' in rootDir):
             with open(rootDir, 'rb') as f:  # Python 3: open(..., 'rb')
                 self.filenames, self.res, self.sizes,self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample,self.featNames = pickle.load(f)
+                print("filenames: ", self.filenames)
+                print("filenames_subsample: ", self.filenames_subsample)
         else:
             self.filenames = glob.glob(rootDir + 'slice*centered*npz')
             self.res = res # x,y,z resolution as list

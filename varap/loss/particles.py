@@ -24,7 +24,7 @@ class ParticleLoss_ranges():
         self.Z = Z
         self.nu_Z = nu_Z
 
-        self.make_sorted_ranges(Z, nu_Z)
+        self.make_sorted_ranges()
 
     @staticmethod
     def makeEps(Z ,Nmax, Npart):
@@ -54,7 +54,7 @@ class ParticleLoss_ranges():
         return epsZ
 
 
-    def make_sorted_ranges(self, Z, nu_Z):
+    def make_sorted_ranges(self):
         """
         Returns ranges for Z, X and Z and X. But clusters are depending only on x_i and y_j (point positions)
         and not feature (could be changed when genes expression is diffrenten accross space)
@@ -63,16 +63,16 @@ class ParticleLoss_ranges():
         a = torch.tensor(3.).sqrt()
 
         # Ranges for Z
-        epsZ = self.makeEps(Z, 2500, 1000)
-        Z_labels = grid_cluster(Z, epsZ)
-        Z_ranges, Z_centroids, _ = cluster_ranges_centroids(Z, Z_labels)
+        epsZ = self.makeEps(self.Z, 2500.0, 1000.0)
+        Z_labels = grid_cluster(self.Z, epsZ)
+        Z_ranges, Z_centroids, _ = cluster_ranges_centroids(self.Z, Z_labels)
 
         D = ((Z_centroids[:, None, :] - Z_centroids[None, :, :]) ** 2).sum(dim=2)
         keep = D <(a * epsZ + 4 * self.sig) ** 2
         self.rangesZZ_ij = from_matrix(Z_ranges, Z_ranges, keep)
 
         # Ranges for X
-        epsX = self.makeEps(self.X, 2500, 1000)
+        epsX = self.makeEps(self.X, 2500.0, 1000.0)
         X_labels = grid_cluster(self.X, epsX)
         X_ranges, X_centroids, _ = cluster_ranges_centroids(self.X, X_labels)
 
@@ -85,8 +85,8 @@ class ParticleLoss_ranges():
         keep = D < (a * (epsZ / 2.0 + epsX / 2.0) + 4 * self.sig) ** 2
         self.rangesZX_ij = from_matrix(Z_ranges, X_ranges, keep)
 
-        Z, _ = sort_clusters(Z, Z_labels)  # sorting the labels. TODO: check if it affects the results
-        nu_Z, _ = sort_clusters(nu_Z, Z_labels)
+        self.Z, _ = sort_clusters(self.Z, Z_labels)  # sorting the labels. TODO: check if it affects the results
+        self.nu_Z, _ = sort_clusters(self.nu_Z, Z_labels)
 
         self.X, _ = sort_clusters(self.X, X_labels)
         self.nu_X, _ = sort_clusters(self.nu_X, X_labels)
