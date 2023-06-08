@@ -66,7 +66,7 @@ def writeParticleVTK(npzfile,condense=False,featNames=None):
     if not condense:  
         for f in range(nuX.shape[-1]):
             if featNames is not None:
-                imageNames.append(featNames[f] + '_Probabilities')
+                imageNames.append('Feature_' + str(f) + '_' + featNames[f] + '_Probabilities')
             else:
                 imageNames.append('Feature_' + str(f) + '_Probabilities')
             imageVals.append(zetaX[:,f])

@@ -2,7 +2,7 @@ import sys
 from sys import path as sys_path
 sys_path.append('../')
 
-from varap.io.load_BarSeq import BarSeqLoader
+from varap.io.load_BarSeqGenes import BarSeqLoader
 from varap.loss.particles import ParticleLoss_full, ParticleLoss_restricted, ParticleLoss_ranges
 from varap.optim.band import optimize
 from varap.io.writeOut import writeParticleVTK
@@ -14,21 +14,17 @@ dtype = torch.cuda.FloatTensor
 torch.set_default_tensor_type(dtype)
 
 # fpath = '/content/drive/My Drive/Kaitlin/'
-fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/'
+fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
 opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/'
 
 bw = 10
 sig = .025
 
 genes = np.load(fpath + 'geneList.npz',allow_pickle=True)
-genes = genes[genes.files[0]]
+genes = genes[genes.files[1]]
 genes = list(genes)
 
 a = BarSeqLoader(fpath,[0,0,0.200],featNames=genes)
-particles,features = a.getSizes()
-a.subSampleStratified(opath,sig,alpha=0.75)
-#a.retrieveSubSampleStratified(opath,sig,alpha=0.75)
-a.saveToPKL(opath + 'subsampledObject.pkl')
 
 ## First step ##
 
@@ -64,7 +60,7 @@ for f in range(numFiles):
     def callback_restricted(xu):
         nZ = LZ.detach().cpu().numpy()
         nnu_Z = xu[0].detach().cpu().numpy() ** 2
-        np.savez_compressed(opath + outfile, Z=nZ, nu_Z=nnu_Z)
+        np.savez_compressed(opath + outfile + '_restricted', Z=nZ, nu_Z=nnu_Z)
         return nZ, nnu_Z
 
     Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, nb_iter=10, callback=callback_restricted)
@@ -84,8 +80,8 @@ for f in range(numFiles):
     def callback_all(xu):
         nZ = xu[0].detach().cpu().numpy()
         nnu_Z = xu[1].detach().cpu().numpy() ** 2
-        np.savez_compressed(fpath + outfile, Z=nZ, nu_Z=nnu_Z)
+        np.savez_compressed(opath + outfile + '_all', Z=nZ, nu_Z=nnu_Z)
         return nZ, nnu_Z
 
     optimize(L_all.loss, x_init, dxmax, nb_iter=20, callback=callback_all)
-    writeParticleVTK(fpath+outfile+'.npz')
+    writeParticleVTK(opath+outfile+'_all.npz',condense=False,featNames=genes)
