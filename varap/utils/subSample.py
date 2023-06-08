@@ -86,7 +86,7 @@ def makeStratifiedSubSample(X,nuX,sig,maxV,alpha=0.75):
     bins = list(bins)
     hist,be = np.histogram(inv,bins=bins,weights=we,density=False) # mass per bin should indicate total weight 
     
-    nuZ = nuX[sample] # returns first occurrence of mRNA in cube 
+    nuZ = nuX[np.squeeze(sample),...] # returns first occurrence of mRNA in cube 
     
     Z = coords[np.squeeze(sample),...]
     

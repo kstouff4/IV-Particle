@@ -5,7 +5,8 @@ from sys import path as sys_path
 sys_path.append('../../')
 sys_path.append('../utils/')
 from varap.utils.subSample import *
-from load_utils import centerAndScale
+from varap.io.load_utils import centerAndScale
+from varap.io.writeOut import writeParticleVTK
 import os
 import pickle
 
@@ -20,8 +21,8 @@ class BarSeqLoader:
         dimEff = effective dimension of data (2 if filenames represent slices, 3 if represent slabs)
         '''
         if ('.pkl' in rootDir):
-            with open(rootDir) as f:  # Python 3: open(..., 'rb')
-                self.filenames, self.res, self.sizes,self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample = pickle.load(f)
+            with open(rootDir, 'rb') as f:  # Python 3: open(..., 'rb')
+                self.filenames, self.res, self.sizes,self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample,self.featNames = pickle.load(f)
         else:
             self.filenames = glob.glob(rootDir + 'slice*centered*npz')
             self.res = res # x,y,z resolution as list
@@ -80,6 +81,10 @@ class BarSeqLoader:
                     print("Features Read in Dataset is ", n[n.files[1]].shape[1])
         if self.numFeatures is None:
             self.numFeatures = len(np.unique(np.asarray(uniqueF)))
+        if self.featNames is None:
+            self.featNames = []
+            for f in range(self.numFeatures):
+                self.featNames.append('Feat' + str(f))
         
         self.sizes = sizes
         print("set sizes: ", self.sizes)
@@ -178,23 +183,33 @@ class BarSeqLoader:
         self.filenames_subsample = fs
         return
     
+    def writeSubSampled(self):
+        for f in self.filenames_subsample:
+            writeParticleVTK(f,condense=False,featNames=self.featNames)
+        return
+    
     def saveToPKL(self,outpath):
         with open(outpath, 'wb') as f:  # Python 3: open(..., 'wb')
-            pickle.dump([self.filenames, self.res, self.sizes, self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample], f)
+            pickle.dump([self.filenames, self.res, self.sizes, self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample,self.featNames], f)
         return
 
 if __name__ == '__main__':
-    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/'
-    genes = np.load(fp + 'geneList.npz',allow_pickle=True)
-    genes = genes[genes.files[0]]
+    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
+    genes = np.load(fp.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
+    genes = genes[genes.files[1]]
     genes = list(genes)
     a = BarSeqLoader(fp,[0,0,0.200],featNames=genes)
-    print("filenames are: ", len(a.filenames))
-    particles,features = a.getSizes()
-    print(a.sizes)
-    print(a.numFeatures)
-    print(sum(a.sizes))
+    #print("filenames are: ", a.filenames)
+    #a.featNames = genes
+    #print("feature names are:", a.featNames)
+    #particles,features = a.getSizes()
+    #print(a.sizes)
+    #print(a.numFeatures)
+    #print(sum(a.sizes))
     sigma = 0.025
+    #a.subSampleStratified(fp.replace('subsampledObject.pkl',''),sigma,alpha=0.75)
+    a.writeSubSampled()
+    a.saveToPKL(fp)
     #a.centerAndScaleAll()
     
     

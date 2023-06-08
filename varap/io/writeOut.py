@@ -61,7 +61,7 @@ def writeParticleVTK(npzfile,condense=False,featNames=None):
     imageVals = [np.sum(nuX,axis=-1),np.argmax(nuX,axis=-1)]
     zetaX = nuX/np.sum(nuX,axis=-1)[...,None]
     e = np.zeros_like(zetaX)
-    e[zetaX > 0] = zetaX[zetaX > 0]*np.log(zetaX[zetaX > 0])
+    e[zetaX > 0] = -zetaX[zetaX > 0]*np.log(zetaX[zetaX > 0])
     imageVals.append(np.sum(e,axis=-1))
     if not condense:  
         for f in range(nuX.shape[-1]):
