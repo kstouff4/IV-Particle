@@ -5,6 +5,8 @@ I/O: npz files
 
 # Author: Kaitlin Stouffer (kstouff4@jhmi.edu)
 
+import numpy as np
+
 def centerAndScale(filename,keepZ=False,s=0.001):
     '''
     Center data around center of Mass and then Scale coordinates

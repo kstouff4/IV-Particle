@@ -23,7 +23,7 @@ class BarSeqLoader:
             with open(rootDir) as f:  # Python 3: open(..., 'rb')
                 self.filenames, self.res, self.sizes,self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample = pickle.load(f)
         else:
-            self.filenames = glob.glob(rootDir + 'slice*npz')
+            self.filenames = glob.glob(rootDir + 'slice*centered*npz')
             self.res = res # x,y,z resolution as list
             if numF is not None:
                 self.numFeatures = numF
@@ -195,7 +195,6 @@ if __name__ == '__main__':
     print(a.numFeatures)
     print(sum(a.sizes))
     sigma = 0.025
-    a.centerAndScaleAll()
-    return
+    #a.centerAndScaleAll()
     
     
