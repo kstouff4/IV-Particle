@@ -26,7 +26,8 @@ class BarSeqLoader:
                 print("filenames: ", self.filenames)
                 print("filenames_subsample: ", self.filenames_subsample)
         else:
-            self.filenames = glob.glob(rootDir + 'slice*centered*npz')
+            #self.filenames = glob.glob(rootDir + 'slice*centered*npz') # original
+            self.filenames = glob.glob(rootDir + 'slice*npz')
             self.res = res # x,y,z resolution as list
             if numF is not None:
                 self.numFeatures = numF
@@ -200,18 +201,19 @@ if __name__ == '__main__':
     genes = np.load(fp.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
     genes = genes[genes.files[1]]
     genes = list(genes)
-    a = BarSeqLoader(fp,[0,0,0.200],featNames=genes)
-    #print("filenames are: ", a.filenames)
+    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.025_dimEff2/'
+    a = BarSeqLoader(fp,[0.025,0.025,0.200],featNames=genes,dimEff=2)
+    print("filenames are: ", a.filenames)
     #a.featNames = genes
     #print("feature names are:", a.featNames)
-    #particles,features = a.getSizes()
+    particles,features = a.getSizes()
+    a.saveToPKL(fp+'initialHigh.pkl')
     #print(a.sizes)
     #print(a.numFeatures)
     #print(sum(a.sizes))
-    sigma = 0.025
+    #sigma = 0.05
     #a.subSampleStratified(fp.replace('subsampledObject.pkl',''),sigma,alpha=0.75)
-    a.writeSubSampled()
-    a.saveToPKL(fp)
+    #a.writeSubSampled()
     #a.centerAndScaleAll()
     
     
