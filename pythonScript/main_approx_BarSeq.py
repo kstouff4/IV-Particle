@@ -14,24 +14,28 @@ dtype = torch.cuda.FloatTensor
 torch.set_default_tensor_type(dtype)
 
 # fpath = '/content/drive/My Drive/Kaitlin/'
-fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/'
+fpathO = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
+fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.025_dimEff2/initialHighLow.pkl'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.1_dimEff2/'
 
 bw = 10
 sig = .025
+sig = 0.05
+sig = 0.1
 
-genes = np.load(fpath.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
+genes = np.load(fpathO.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
 genes = genes[genes.files[1]]
 genes = list(genes)
 
-a = BarSeqLoader(fpath,[0,0,0.200],featNames=genes)
+a = BarSeqLoader(fpath,[0,0,0.200],featNames=genes,dimEff=2)
 
 ## First step ##
 
 # Define loss functions
 numFiles = a.getNumberOfFiles()
+print("number of files optimizing: ", numFiles)
 
-for f in range(1):
+for f in range(numFiles):
     nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(f)
     HZ = torch.tensor(nHZ).type(dtype)
     Hnu_Z = torch.tensor(nHnu_Z).type(dtype)
@@ -48,8 +52,8 @@ for f in range(1):
     LZ = ranges.Z
     Lnu_Z = ranges.nu_Z
 
-    np.savez_compressed(opath + outfile + '_initialSort',Z=LZ.detach().cpu().numpy(),nu_Z=Lnu_Z.detach().cpu().numpy())
-    writeParticleVTK(opath+outfile+'_initialSort.npz',featNames=genes)
+    #np.savez_compressed(opath + outfile + '_initialSort',Z=LZ.detach().cpu().numpy(),nu_Z=Lnu_Z.detach().cpu().numpy())
+    #writeParticleVTK(opath+outfile+'_initialSort.npz',featNames=genes)
     
     L_restricted = ParticleLoss_restricted(sig, HZ, Hnu_Z, LZ, bw=bw,ranges=ranges)
 
@@ -67,7 +71,7 @@ for f in range(1):
         np.savez_compressed(opath + outfile + '_restricted', Z=nZ, nu_Z=nnu_Z)
         return nZ, nnu_Z
 
-    Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, nb_iter=2, callback=callback_restricted)
+    Z, nu_Z = optimize(L_restricted.loss, x_init, dxmax, nb_iter=10, callback=callback_restricted)
     writeParticleVTK(opath+outfile+'_restricted.npz',featNames=genes)
 
     ## Second step ##
@@ -88,5 +92,5 @@ for f in range(1):
         np.savez_compressed(opath + outfile + '_all', Z=nZ, nu_Z=nnu_Z)
         return nZ, nnu_Z
 
-    optimize(L_all.loss, x_init, dxmax, nb_iter=4, callback=callback_all)
+    optimize(L_all.loss, x_init, dxmax, nb_iter=20, callback=callback_all)
     writeParticleVTK(opath+outfile+'_all.npz',condense=False,featNames=genes)

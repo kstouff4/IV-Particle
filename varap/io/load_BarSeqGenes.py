@@ -27,7 +27,8 @@ class BarSeqLoader:
                 print("filenames_subsample: ", self.filenames_subsample)
         else:
             #self.filenames = glob.glob(rootDir + 'slice*centered*npz') # original
-            self.filenames = glob.glob(rootDir + 'slice*npz')
+            #self.filenames = glob.glob(rootDir + 'slice*npz') # aligned high resolution
+            self.filenames = glob.glob(rootDir + 'optimal_all.npz')
             self.res = res # x,y,z resolution as list
             if numF is not None:
                 self.numFeatures = numF
@@ -195,25 +196,42 @@ class BarSeqLoader:
         with open(outpath, 'wb') as f:  # Python 3: open(..., 'wb')
             pickle.dump([self.filenames, self.res, self.sizes, self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample,self.featNames], f)
         return
+    
+    def writeAll(self,outpath):
+        X = np.zeros((sum(self.sizes),3))
+        nuX = np.zeros((sum(self.sizes),numF))
+        
+        c = 0
+        for f in range(len(self.filenames)):
+            x,nux = self.getSlice(f)
+            X[c:c+self.sizes[f],...] = x
+            nuX[c:c+self.sizes[f],...] = nux
+            c += self.sizes[f]
+        np.savez(outpath+'.npz',Z=X,nu_Z=nuX)
+        writeParticleVTK(outpath+'.npz',condense=False,featNames=self.featNames)
+        return
+                         
 
 if __name__ == '__main__':
     fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
     genes = np.load(fp.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
     genes = genes[genes.files[1]]
     genes = list(genes)
-    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.025_dimEff2/'
-    a = BarSeqLoader(fp,[0.025,0.025,0.200],featNames=genes,dimEff=2)
+    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.05_dimEff2/'
+    a = BarSeqLoader(fp,[0.05,0.05,0.200],featNames=genes,dimEff=2)
     print("filenames are: ", a.filenames)
     #a.featNames = genes
     #print("feature names are:", a.featNames)
     particles,features = a.getSizes()
     a.saveToPKL(fp+'initialHigh.pkl')
+    a.writeAll(fp+'initialHigh_All')
     #print(a.sizes)
     #print(a.numFeatures)
     #print(sum(a.sizes))
-    #sigma = 0.05
-    #a.subSampleStratified(fp.replace('subsampledObject.pkl',''),sigma,alpha=0.75)
+    sigma = 0.1
+    #a.subSampleStratified(fp.replace('initialHigh.pkl',''),sigma,alpha=0.75)
     #a.writeSubSampled()
+    #a.saveToPKL(fp.replace('initialHigh','initialHighLow'))
     #a.centerAndScaleAll()
     
     
