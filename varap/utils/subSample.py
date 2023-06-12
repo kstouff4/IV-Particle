@@ -93,7 +93,9 @@ def makeStratifiedSubSample(X,nuX,sig,maxV,alpha=0.75):
     if (nuZ.shape[-1] < maxV or len(nuZ.shape) < 2):
         nu_Z = makeOneHot(nuZ,maxVal=maxV)*np.squeeze(hist)[...,None] #*counts[...,None] # weigh particles based on number of MRNA in each cube
     else:
-        nu_Z = nuZ*np.squeeze(hist)[...,None]/np.sum(nuZ,axis=-1)[...,None]
+        nu_Z = np.zeros_like(nuZ)
+        temp = nuZ*np.squeeze(hist)[...,None]/np.sum(nuZ,axis=-1)[...,None]
+        nu_Z[nuZ > 0] = temp[nuZ > 0]
     print("sume before :" + str(np.sum(nu_Z)))
     nu_Z = nu_Z*np.sum(nuXo)/np.sum(nu_Z)
     print("sum after :" + str(np.sum(nu_Z)))

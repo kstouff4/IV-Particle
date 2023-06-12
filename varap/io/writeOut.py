@@ -59,7 +59,9 @@ def writeParticleVTK(npzfile,condense=False,featNames=None):
     
     imageNames = ['Weight','Maximum_Feature_Dimension','Entropy']
     imageVals = [np.sum(nuX,axis=-1),np.argmax(nuX,axis=-1)]
-    zetaX = nuX/np.sum(nuX,axis=-1)[...,None]
+    zetaX = np.zeros_like(nuX)
+    zetaXWhole = nuX/np.sum(nuX,axis=-1)[...,None]
+    zetaX[nuX > 0] = zetaXWhole[nuX > 0]
     e = np.zeros_like(zetaX)
     e[zetaX > 0] = -zetaX[zetaX > 0]*np.log(zetaX[zetaX > 0])
     imageVals.append(np.sum(e,axis=-1))
