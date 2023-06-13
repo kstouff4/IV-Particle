@@ -25,10 +25,23 @@ class BarSeqLoader:
                 self.filenames, self.res, self.sizes,self.numFeatures,self.deltaF,self.dimEff,self.filenames_subsample,self.featNames = pickle.load(f)
                 print("filenames: ", self.filenames)
                 print("filenames_subsample: ", self.filenames_subsample)
+        elif ('.npz' in rootDir):
+            self.filenames = [rootDir]
+            allFiles = np.load(rootDir)
+            self.res = res
+            self.numFeatures = allFiles[allFiles.files[1]].shape[-1]
+            self.deltaF = deltaF
+            self.sizes = [allFiles[allFiles.files[0]].shape[0]]
+            self.dimEff = 3
+            self.filenames_subsample = None
+            if featNames is not None:
+                self.featNames = featNames
+            else:
+                self.featNames = None
         else:
             #self.filenames = glob.glob(rootDir + 'slice*centered*npz') # original
             #self.filenames = glob.glob(rootDir + 'slice*npz') # aligned high resolution
-            self.filenames = glob.glob(rootDir + 'optimal_all.npz')
+            self.filenames = glob.glob(rootDir + '*optimal_all.npz')
             self.res = res # x,y,z resolution as list
             if numF is not None:
                 self.numFeatures = numF
@@ -199,7 +212,7 @@ class BarSeqLoader:
     
     def writeAll(self,outpath):
         X = np.zeros((sum(self.sizes),3))
-        nuX = np.zeros((sum(self.sizes),numF))
+        nuX = np.zeros((sum(self.sizes),self.numFeatures))
         
         c = 0
         for f in range(len(self.filenames)):
@@ -217,21 +230,21 @@ if __name__ == '__main__':
     genes = np.load(fp.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
     genes = genes[genes.files[1]]
     genes = list(genes)
-    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.05_dimEff2/'
-    a = BarSeqLoader(fp,[0.05,0.05,0.200],featNames=genes,dimEff=2)
+    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.1_dimEff2/initialHigh_All.npz'
+    a = BarSeqLoader(fp,[0.1,0.1,0.200],featNames=genes,dimEff=3)
     print("filenames are: ", a.filenames)
     #a.featNames = genes
-    #print("feature names are:", a.featNames)
+    print("feature names are:", a.featNames)
     particles,features = a.getSizes()
-    a.saveToPKL(fp+'initialHigh.pkl')
-    a.writeAll(fp+'initialHigh_All')
+    a.saveToPKL(fp+'initialHighAll.pkl')
+    #a.writeAll(fp+'initialHigh_All')
     #print(a.sizes)
     #print(a.numFeatures)
     #print(sum(a.sizes))
-    sigma = 0.1
-    #a.subSampleStratified(fp.replace('initialHigh.pkl',''),sigma,alpha=0.75)
-    #a.writeSubSampled()
-    #a.saveToPKL(fp.replace('initialHigh','initialHighLow'))
+    sigma = 0.2
+    a.subSampleStratified(fp.replace('initialHigh_All.npz',''),sigma,alpha=0.75)
+    a.writeSubSampled()
+    a.saveToPKL(fp.replace('initialHigh_All.npz','initialHighLowAll.pkl'))
     #a.centerAndScaleAll()
     
     

@@ -100,5 +100,6 @@ def makeStratifiedSubSample(X,nuX,sig,maxV,alpha=0.75):
     nu_Z = nu_Z*np.sum(nuXo)/np.sum(nu_Z)
     print("sum after :" + str(np.sum(nu_Z)))
     print("nu_Z shape, ", nu_Z.shape)
+    print("nuZ sum original: " + str(np.sum(nuXo)))
     
     return Z,nu_Z

@@ -15,19 +15,20 @@ torch.set_default_tensor_type(dtype)
 
 # fpath = '/content/drive/My Drive/Kaitlin/'
 fpathO = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
-fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.025_dimEff2/initialHighLow.pkl'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.1_dimEff2/'
+fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.1_dimEff2/initialHighLowAll.pkl'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.2/'
 
 bw = 10
 sig = .025
 sig = 0.05
 sig = 0.1
+sig = 0.2
 
 genes = np.load(fpathO.replace('sig0.025/subsampledObject.pkl','geneList.npz'),allow_pickle=True)
 genes = genes[genes.files[1]]
 genes = list(genes)
 
-a = BarSeqLoader(fpath,[0,0,0.200],featNames=genes,dimEff=2)
+a = BarSeqLoader(fpath,[0.1,0.1,0.200],featNames=genes,dimEff=3)
 
 ## First step ##
 
