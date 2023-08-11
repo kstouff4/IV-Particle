@@ -1,8 +1,7 @@
 import sys
 from sys import path as sys_path
 sys_path.append('../')
-
-from varap.io.load_Allen3DMerfish import Allen3DMerfishLoader
+from varap.io.load_Allen3DMERFISH import Allen3DMerfishLoader
 from varap.loss.particles import ParticleLoss_full, ParticleLoss_restricted
 from varap.optim.band import optimize
 from varap.io.writeOut import writeParticleVTK
@@ -22,8 +21,8 @@ sig = .025
 
 a = Allen3DMerfishLoader(fpath,[0,0,0.100])
 particles,features = a.getSizes()
-#a.subSampleStratified(opath,sig,alpha=0.75)
-a.retrieveSubSampleStratified(opath,sig,alpha=0.75)
+a.subSampleStratified(opath,sig,alpha=0.75)
+#a.retrieveSubSampleStratified(opath,sig,alpha=0.75)
 a.saveToPKL(opath + 'subsampledObject.pkl')
 
 ## First step ##
