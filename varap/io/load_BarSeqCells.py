@@ -14,7 +14,7 @@ from scipy import io
 
 class BarSeqCellLoader:
     
-    def __init__(self,rootDir,res,geneFeat=True,dimEff=None,numF=None,deltaF=False,featNames=None):
+    def __init__(self,rootDir,res,geneFeat='nu_G',dimEff=None,numF=None,deltaF=False,featNames=None):
         '''
         rootDir = directory with XnuX.npz files for each slice
         res = [x,y,z] resolution; x = 0 if finest resolution is unknown
@@ -32,11 +32,7 @@ class BarSeqCellLoader:
             self.filenames = [rootDir]
             allFiles = np.load(rootDir)
             self.res = res
-            if geneFeat:
-                self.fName = 'nu_G'
-            else:
-                self.fName = 'nu_C'
-                
+            self.fName = geneFeat
             self.numFeatures = allFiles[self.fName].shape[-1]
             self.deltaF = deltaF
             self.sizes = [allFiles[allFiles.files[0]].shape[0]]
@@ -50,6 +46,11 @@ class BarSeqCellLoader:
             #self.filenames = glob.glob(rootDir + 'slice*centered*npz') # original
             #self.filenames = glob.glob(rootDir + 'slice*npz') # aligned high resolution
             self.filenames = glob.glob(rootDir + '*cellSlice*.npz')
+            newlist = []
+            for ff in self.filenames:
+                if not 'US' in ff:
+                    newlist.append(ff)
+            self.filenames = newlist
             self.res = res # x,y,z resolution as list
             if numF is not None:
                 self.numFeatures = numF
@@ -69,11 +70,7 @@ class BarSeqCellLoader:
                 self.featNames = featNames
             else:
                 self.featNames = None
-            
-            if geneFeat:
-                self.fName = 'nu_G'
-            else:
-                self.fName = 'nu_C'
+            self.fName = geneFeat # nu_G = genes, nu_T = cell types, nu_R = region types
     
     def getSizes(self):
         '''
@@ -197,7 +194,7 @@ class BarSeqCellLoader:
             Z,nuZ = makeStratifiedSubSample(X,nuX,resolution,self.numFeatures,alpha=alpha)
             nuZ = makeUniform(Z,nuZ)
             count += Z.shape[0]
-            sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_US.npz'
+            sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_' + self.fName + '_US.npz'
             fs.append(sn)
             np.savez(sn,Z=Z,nu_Z=nuZ)
         self.filenames_subsample = fs
@@ -208,7 +205,7 @@ class BarSeqCellLoader:
     def retrieveSubSampleStratified(self,outpath,resolution,alpha=0.75):
         fs = []
         for i in range(len(self.filenames)):
-            sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_US.npz'
+            sn = outpath + self.filenames[i].split('/')[-1].replace('.npz','') + '_' + self.fName + '_US.npz'
             fs.append(sn)
         self.filenames_subsample = fs
         return
@@ -239,27 +236,46 @@ class BarSeqCellLoader:
                          
 
 if __name__ == '__main__':
-    fp = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/Whole_Brain_2023/Cells/'
-    origDataFP = '/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/Whole_Brain_2023/'
-    ct = sp.io.loadmat(origDataFP+'rolonies_cellTypes.mat',appendmat=False)
+    fp = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Half_Brain_D079/sig0.25Align_HighRes/'
+    origDataFP = '/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/Half_Brain_D079/'
+    pref = 'filt_neurons_D079_3L_goodsubset_CCFv2'
+    #pref = 'rolonies'
+    #pref = 'filt_neurons-clust3'
+    ct = sp.io.loadmat(origDataFP+pref+'_cellTypes.mat',appendmat=False)
     cellTypeNames = ct['cellTypes']
-    gt = sp.io.loadmat(origDataFP+'rolonies_geneNames.mat',appendmat=False)
-    geneTypeNames = gt['geneNames']
+    ctList = []
+    for i in range(len(cellTypeNames)):
+        ctList.append(cellTypeNames[i][0][0])
+    cellTypeNames = ctList
     
-    a = BarSeqCellLoader(fp,[0.0,0.0,0.200],featNames=cellTypeNames,geneFeat=False,dimEff=2)
+    gtList = []
+    gt = sp.io.loadmat(origDataFP+pref+'_geneNames.mat',appendmat=False)
+    geneTypeNames = gt['geneNames']
+    for i in range(len(geneTypeNames)):
+        gtList.append(geneTypeNames[i][0][0])
+    geneTypeNames = gtList
+    
+    rtList = []
+    rt = sp.io.loadmat(origDataFP + pref + '_regionTypes.mat',appendmat=False)
+    regionTypeNames = rt['regionTypes']
+    for i in range(len(regionTypeNames)):
+        rtList.append(regionTypeNames[i][0][0])
+    regionTypeNames = rtList
+    
+    a = BarSeqCellLoader(fp,[0.0,0.0,0.200],featNames=regionTypeNames,geneFeat='nu_R',dimEff=2)
     print("filenames are: ", a.filenames)
     #a.featNames = genes
     print("feature names are:", a.featNames)
     particles,features = a.getSizes()
-    a.saveToPKL(fp+'initialHighAllCellTypes.pkl')
-    a.writeAll(fp+'initialHighAllCellTypes')
+    a.saveToPKL(fp+'initialHighAll_nu_R.pkl')
+    a.writeAll(fp+'initialHighAll_nu_R')
     #print(a.sizes)
     #print(a.numFeatures)
     #print(sum(a.sizes))
-    sigma = 0.1
+    sigma = 0.2
     a.subSampleStratified(fp,sigma,alpha=0.75)
     #a.writeSubSampled()
-    a.saveToPKL(fp+'initialHighLowAllCellTypes.pkl')
+    a.saveToPKL(fp+'initialHighLowAll_nu_R.pkl')
     #a.centerAndScaleAll()
     
     
