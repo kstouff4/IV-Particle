@@ -5,7 +5,8 @@ cd /cis/home/kstouff4/Documents/MeshRegistration/Scripts-KMS/approxCode
 
 k=4
 mSize=6
-cSize=50.0
+cSize=50.0 # microns
+cSize=0.05 # mm 
 
 if [[ $2 == 'allen' ]]; then
     fp='/cis/home/kstouff4/Documents/SpatialTranscriptomics/Mouse/Mouse1_20220506/zipfiles1/'
@@ -50,19 +51,21 @@ elif [[ $2 == 'merfish' ]]; then
 
 elif [[ $2 == 'barseq' ]]; then
     echo "computing barseq"
-    fp='/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/Genes/'
-    fils=$(find $fp | grep slice | grep npz)
+    fp='/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/Genes/' # original (March 2023)
+    fp='/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25/Genes/'
+    fils=$(find $fp | grep cellGeneSlice | grep npz) # or get cellGeneSlice
     if [[ $1 == 1 ]]; then
         for f in ${fils[*]}; do
-            python3 -c "import mrnaMI as mm; mm.singleMI('$f',$cSize,$mSize,$k);quit()"
+            python3 -c "import mrnaMI as mm; mm.singleMI('$f',$cSize,$mSize,$k,feat='nu_G');quit()"
         done
     elif [[ $1 == 2 ]]; then
-        fils=$(find $fp | grep cSize${cSize}_k${k}.npz)
+        fils=$(find $fp | grep cSize${cSize}_k${k}.npz | grep cellGeneSlice)
         for f in ${fils[*]}; do
+            echo $f
             python3 -c "import mrnaMI as mm; mm.convolveHalfPlane('$f',$mSize,axC=0);mm.convolveHalfPlane('$f',$mSize,axC=1);quit()"
         done
     elif [[ $1 == 3 ]]; then
-        sd='/cis/home/kstouff4/Documents/SpatialTranscriptomics/BarSeq/MI_ResultsGenes/'
+        sd='/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25/Genes/MI_ResultsCellGenes/'
         mkdir $sd
         python3 -c "import mrnaMI as mm; mm.wholeBrainMI('$fp','$sd');quit()"
     fi

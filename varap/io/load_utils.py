@@ -24,3 +24,27 @@ def centerAndScale(filename,keepZ=False,s=0.001):
     newName = filename.replace('.npz','_centeredAndScaled' + str(s) + '.npz')
     np.savez(newName,**di)
     return newName
+
+def makeOneHot(nu_X):
+    u,i = np.unique(nu_X,return_inverse=True)
+    z = np.zeros((nu_X.shape[0],len(u)))
+    z[np.arange(nu_X.shape[0]),i] = 1.0
+    return z
+                 
+                 
+def selectFeatureSubset(filename,featureName,featureIndices,savesuff):
+    data = np.load(filename)
+    X = data[data.files[0]]
+    nu_X = data[featureName]
+    
+    # make one hot and select indices
+    if nu_X.shape[-1] == X.shape[0] or nu_X.shape[-1] < len(featureIndices):
+        nu_X = makeOneHot(nu_X)
+    
+    nu_Xs = nu_X[:,featureIndices]
+    
+    # remove zeros
+    nu_Xss = nu_Xs[np.squeeze(np.sum(nu_Xs,axis=-1) > 0),:]
+    
+    np.savez(filename.replace('.npz',savesuff + '.npz'),X=X,nu_X=nu_Xss)
+    return
