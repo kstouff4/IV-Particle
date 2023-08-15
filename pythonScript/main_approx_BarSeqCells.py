@@ -1,3 +1,4 @@
+import os
 import sys
 from sys import path as sys_path
 sys_path.append('../')
@@ -17,11 +18,15 @@ torch.set_default_tensor_type(dtype)
 fpathO = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
 fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.1_dimEff2/initialHighLowAll.pkl'
 opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.2/'
-fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Half_Brain_D079/sig0.25Align_HighRes/initialHighLowAll_nu_R.pkl'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Half_Brain_D079/sig0.25Align_200um/'
+
+fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25/Genes/initialHighLowAllGenes_top16.pkl'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25Align_100um/AllGenes/'
+
+os.makedirs(opath,exist_ok=True)
 
 bw = 10
-sig = 0.2
+sig = 0.1
+optimizeAll = False
 
 a = BarSeqCellLoader(fpath,[0.0,0.0,0.200])
 
@@ -31,17 +36,10 @@ a = BarSeqCellLoader(fpath,[0.0,0.0,0.200])
 numFiles = a.getNumberOfFiles()
 print("number of files optimizing: ", numFiles)
 
-for f in range(numFiles):
-    nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(f)
-    HZ = torch.tensor(nHZ).type(dtype)
-    Hnu_Z = torch.tensor(nHnu_Z).type(dtype)
-    LZ = torch.tensor(nLZ).type(dtype)
-    Lnu_Z = torch.tensor(nLnu_Z).type(dtype)
-    
-    outfile = a.getFilename_subsample(f).split('/')[-1].replace('.npz','_optimal')
-    ranges = ParticleLoss_ranges(sig, HZ, Hnu_Z, LZ, Lnu_Z)
-    print(torch.allclose(LZ,ranges.Z))
-    
+def optimizeFunc(HZi,Hnu_Zi,LZi,Lnu_Zi,outfile):
+    ranges = ParticleLoss_ranges(sig, HZi, Hnu_Zi, LZi, Lnu_Zi)
+    print(torch.allclose(LZi,ranges.Z))
+
     # reset variables to sorted versions
     HZ = ranges.X
     Hnu_Z = ranges.nu_X
@@ -90,3 +88,39 @@ for f in range(numFiles):
 
     optimize(L_all.loss, x_init, dxmax, nb_iter=20, callback=callback_all)
     writeParticleVTK(opath+outfile+'_all.npz',condense=False,featNames=a.featNames)
+    return
+
+if optimizeAll:
+    nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(0)
+    HZ = torch.tensor(nHZ).type(dtype)
+    Hnu_Z = torch.tensor(nHnu_Z).type(dtype)
+    LZ = torch.tensor(nLZ).type(dtype)
+    Lnu_Z = torch.tensor(nLnu_Z).type(dtype) 
+    print(HZ.shape)
+    print(Hnu_Z.shape)
+    print(LZ.shape)
+    print(Lnu_Z.shape)
+    for f in range(1,numFiles):
+        nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(f)
+        HZ = torch.cat((HZ,torch.tensor(nHZ).type(dtype)))
+        Hnu_Z = torch.cat((Hnu_Z,torch.tensor(nHnu_Z).type(dtype)))
+        LZ = torch.cat((LZ,torch.tensor(nLZ).type(dtype)))
+        Lnu_Z = torch.cat((Lnu_Z,torch.tensor(nLnu_Z).type(dtype)))
+    
+    print(HZ.shape)
+    print(Hnu_Z.shape)
+    print(LZ.shape)
+    print(Lnu_Z.shape)
+    outfile = 'all_optimal'
+    optimizeFunc(HZ,Hnu_Z,LZ,Lnu_Z,outfile)
+else:
+    for f in range(numFiles):
+        nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(f)
+        HZ = torch.tensor(nHZ).type(dtype)
+        Hnu_Z = torch.tensor(nHnu_Z).type(dtype)
+        LZ = torch.tensor(nLZ).type(dtype)
+        Lnu_Z = torch.tensor(nLnu_Z).type(dtype)
+
+        outfile = a.getFilename_subsample(f).split('/')[-1].replace('.npz','_optimal')
+        optimizeFunc(HZ,Hnu_Z,LZ,Lnu_Z,outfile)
+    

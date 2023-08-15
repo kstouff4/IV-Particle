@@ -44,7 +44,9 @@ def selectFeatureSubset(filename,featureName,featureIndices,savesuff):
     nu_Xs = nu_X[:,featureIndices]
     
     # remove zeros
-    nu_Xss = nu_Xs[np.squeeze(np.sum(nu_Xs,axis=-1) > 0),:]
+    inds = np.squeeze(np.sum(nu_Xs,axis=-1) > 0)
+    nu_Xss = nu_Xs[inds,:]
+    Xs = X[inds,:]
     
-    np.savez(filename.replace('.npz',savesuff + '.npz'),X=X,nu_X=nu_Xss)
+    np.savez(filename.replace('.npz',savesuff + '.npz'),X=Xs,nu_X=nu_Xss)
     return

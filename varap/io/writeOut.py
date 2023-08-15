@@ -1,4 +1,5 @@
 import numpy as np
+import glob
 
 def writeVTK(YXZ,features,featureNames,savename,polyData=None,fields=None,fieldNames=None):
     '''
@@ -82,4 +83,19 @@ def writeParticleVTK(npzfile,condense=False,featNames=None,norm=True):
                 imageVals.append(nuX[:,f])
             
     writeVTK(X,imageVals,imageNames,npzfile.replace('.npz','.vtk'))
+    return
+
+def combineSlices(dirName,featNames=None):
+    fils = glob.glob(dirName + '*optimal_all.npz')
+    f = np.load(fils[0])
+    X = f[f.files[0]]
+    nu_X = f[f.files[1]]
+    
+    for i in range(1,len(fils)):
+        f = np.load(fils[i])
+        X = np.vstack((X,f[f.files[0]]))
+        nu_X = np.vstack((nu_X,f[f.files[1]]))
+    
+    np.savez(dirName + 'all_optimal_all.npz',Z=X,nu_Z=nu_X)
+    writeParticleVTK(dirName + 'all_optimal_all.npz',featNames=featNames)
     return

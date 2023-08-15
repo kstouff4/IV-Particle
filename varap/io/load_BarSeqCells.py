@@ -46,8 +46,8 @@ class BarSeqCellLoader:
             #self.filenames = glob.glob(rootDir + 'slice*centered*npz') # original
             #self.filenames = glob.glob(rootDir + 'slice*npz') # aligned high resolution
             self.filenames = glob.glob(rootDir + '*cellSlice*.npz') # aligned high resolution cells
-            self.filenames = glob.glob(rootDir + '*allGeneSlice*.npz') # aligned all genes
-            self.filenames = glob.glob(rootDir + '*cellGeneSlice*.npz') # aligned genes in cells 
+            self.filenames = glob.glob(rootDir + '*allGeneSlice*_top16.npz') # aligned all genes
+            #self.filenames = glob.glob(rootDir + '*cellGeneSlice*_top16.npz') # aligned genes in cells 
             newlist = []
             for ff in self.filenames:
                 if not 'US' in ff:
@@ -248,17 +248,17 @@ if __name__ == '__main__':
     geneNames = info['names']
     geneInds = info['inds']
     numSlices = 40
-    
+    '''
     for i in range(1,numSlices+1):
-        selectGeneSubset(fp + 'rolonies_allGeneSlice' + str(i) + '.npz','nu_G',geneInds,'_top16')
+        selectFeatureSubset(fp + 'rolonies_allGeneSlice' + str(i) + '.npz','nu_G',geneInds,'_top16')
     
     sub = fp + 'MI_ResultsCellGenes/top16.npz'
     info = np.load(sub,allow_pickle=True)
     geneNames = info['names']
     geneInds = info['inds']
     for i in range(1,numSlices+1):
-        selectGeneSubset(fp + 'rolonies_cellGeneSlice' + str(i) + '.npz','nu_G',geneInds,'_top16')
-                         
+        selectFeatureSubset(fp + 'rolonies_cellGeneSlice' + str(i) + '.npz','nu_G',geneInds,'_top16')
+    '''                     
         
     '''
     # Selection of All Features
@@ -288,21 +288,21 @@ if __name__ == '__main__':
     regionTypeNames = rtList
     '''
     
-    '''
-    a = BarSeqCellLoader(fp,[0.0,0.0,0.200],featNames=geneTypeNames,geneFeat='nu_G',dimEff=2)
+    
+    a = BarSeqCellLoader(fp,[0.0,0.0,0.200],featNames=geneNames,geneFeat='nu_X',dimEff=2)
     print("filenames are: ", a.filenames)
     #a.featNames = genes
     print("feature names are:", a.featNames)
     particles,features = a.getSizes()
-    a.saveToPKL(fp+'initialHighCellGenes_nu_G.pkl')
-    a.writeAll(fp+'initialHighCellGenes_nu_G')
+    a.saveToPKL(fp+'initialHighAllGenes_top16.pkl')
+    a.writeAll(fp+'initialHighAllGenes_top16')
     #print(a.sizes)
     #print(a.numFeatures)
     #print(sum(a.sizes))
     sigma = 0.1
     a.subSampleStratified(fp,sigma,alpha=0.75)
     #a.writeSubSampled()
-    a.saveToPKL(fp+'initialHighLowCellGenes_nu_G.pkl')
+    a.saveToPKL(fp+'initialHighLowAllGenes_top16.pkl')
     #a.centerAndScaleAll()
-    '''
+    
     
