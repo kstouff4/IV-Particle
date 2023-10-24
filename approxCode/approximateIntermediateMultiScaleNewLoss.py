@@ -182,9 +182,6 @@ def rescale_loss(loss,lossOnly,x,dmax):
     for (xh,dmaxh) in zip(x,dmax):
         xr.append((torch.clone(xh).detach()+(2*torch.rand(xh.shape).type(dtype)-1)*dmaxh).requires_grad_(True))
 
-    # rescale based on initial value at x of loss
-    Linit = lossOnly(x)
-    betaCoeff = torch.tensor(1.0/Linit) 
     # Compute the gradient at randomized intial point
     L = lossOnly(xr)
     L.backward()
@@ -211,8 +208,7 @@ def rescale_loss(loss,lossOnly,x,dmax):
 
     def loss_new(xopt_cur):
         # create the new rescaled using the optimization variable
-        Li, ci = loss(uvar_from_optvar(xopt_cur))
-        return betaCoeff*Li, betaCoeff*ci
+        return loss(uvar_from_optvar(xopt_cur))
 
     xopt = []
     for (xh,ah) in zip(x,a):
@@ -631,23 +627,23 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     len_Z, dim_nu_Z = nu_Z.shape
     
     # if want to rescale loss such taht is equal to 1
-    #coeff = getInitialLoss(tX,tnu_X,tZ,tnu_Z,rangesXX,rangesZZ,rangesZX)
-    #coeff = 1.0/coeff
+    coeff = getInitialLoss(tX,tnu_X,tZ,tnu_Z,rangesXX,rangesZZ,rangesZX)
+    coeff = 1.0/coeff
 
     # Optimization
     outerCost = []
-    def optimize(tZp, tnu_Zp, nb_iter = 20, flag = 'all',coeff=torch.tensor(1.0).type(dtype)):
+    def optimize(tZp, tnu_Zp, nb_iter = 20, flag = 'all',coeff=coeff):
         if flag == 'all':
             temptime = time.time()
             xinit = [torch.clone(tZp).detach(),torch.clone(tnu_Zp.pow(0.5)).detach()]
-            loss,loss_only = make_loss(tX, tnu_X, len_Z, dim_nu_Z, rangesXX, rangesZZ, rangesZX)
+            loss,loss_only = make_loss(tX, tnu_X, len_Z, dim_nu_Z, rangesXX, rangesZZ, rangesZX,coeff=coeff)
             print("time for making loss is " + str(time.time() - temptime))
             loss_new, uvar_from_optvar, xopt = rescale_loss(loss,loss_only,xinit,[torch.tensor(sig[0]).type(dtype),torch.clone(xinit[-1].mean()).detach().type(dtype)])
             optimizer = torch.optim.LBFGS(xopt, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=5,tolerance_grad=1e-8,tolerance_change=1e-10)
         else:
             temptime = time.time()
             xinit = [torch.clone(tnu_Zp.pow(0.5)).detach()]
-            loss2, loss_only2 = make_loss2(tX, tnu_X, tZp, dim_nu_Z, rangesXX, rangesZZ, rangesZX)
+            loss2, loss_only2 = make_loss2(tX, tnu_X, tZp, dim_nu_Z, rangesXX, rangesZZ, rangesZX,coeff=coeff)
             print("time for making loss 2 is " + str(time.time() - temptime))
             loss_new2, uvar_from_optvar2, xopt2 = rescale_loss(loss2,loss_only2,xinit,[torch.clone(xinit[0].mean()).detach().type(dtype)])
 

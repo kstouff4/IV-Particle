@@ -222,10 +222,65 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
         sparse_area = areas[keep].sum()
         
         return rangesXX_ij, rangesZZ_ij, rangesZX_ij, X_labels, Z_labels
-
-    def make_loss(tX, tnuX, len_Z, dim_nu_Z, rangesXX_ij, rangesZZ_ij, rangesZX_ij):
+    
+    def getInitialLoss(tX,tnuX,tZ,tnuZ,rangesXX_ij,rangesZZ_ij,rangesZX_ij):
         c = 0
-        coeff = (1.0/torch.sum(tnuX)).type(dtype)
+        LX_i = LazyTensor(tX[:,None,:])
+        LX_j = LazyTensor(tX[None,:,:])
+        
+        Lnu_X_i = Vi(tnuX)
+        Lnu_X_j = Vj(tnuX)
+        PXX_ij = (Lnu_X_i*Lnu_X_j).sum(dim=2)
+        for si in range(len(sig)):
+            sigg = torch.tensor(sig[si]).type(dtype)
+            D_ij = ((LX_i - LX_j)**2/sigg**2).sum(dim=2) 
+            K_ijs = (- D_ij).exp()
+            if si == 0:
+                K_ij = K_ijs
+            else:
+                K_ij += K_ijs
+                
+        K_ij = K_ij*PXX_ij
+        K_ij.ranges = rangesXX_ij
+        c +=  (K_ij.sum(dim=1).sum())
+        
+        LZ_i, LZ_j= Vi(tZ), Vj(tZ)
+        for si in range(len(sig)):
+            sigg = torch.tensor(sig[si]).type(dtype)
+            DZZ_ij = ((LZ_i - LZ_j)**2/sigg**2).sum(dim=2)  
+            KZZ_ijs = (- DZZ_ij).exp()
+            if si == 0:
+                KZZ_ij = KZZ_ijs
+            else:
+                KZZ_ij += KZZ_ijs
+        
+        Lnu_Z_i, Lnu_Z_j = Vi(tnuZ), Vj(tnuZ)
+        PZZ_ij = (Lnu_Z_i*Lnu_Z_j).sum(dim=2)
+        KPZZ_ij = KZZ_ij*PZZ_ij
+        KPZZ_ij.ranges=rangesZZ_ij
+        L = (KPZZ_ij.sum(dim=1).sum()) + c
+            
+        for si in range(len(sig)):
+            sigg = torch.tensor(sig[si]).type(dtype)
+            DZX_ij = ((LZ_i - LX_j)**2/sigg**2).sum(dim=2) 
+            KZX_ijs = (- DZX_ij).exp() 
+            if si == 0:
+                KZX_ij = KZX_ijs
+            else:
+                KZX_ij += KZX_ijs
+
+        PZX_ij = (Lnu_Z_i*Lnu_X_j).sum(dim=2)
+        KPZX_ij = KZX_ij*PZX_ij
+        KPZX_ij.ranges = rangesZX_ij
+            
+        L -= 2.0*KPZX_ij.sum(dim=1).sum()
+
+        return L.detach()
+
+    def make_loss(tX, tnuX, len_Z, dim_nu_Z, rangesXX_ij, rangesZZ_ij, rangesZX_ij,pTilde,coeff):
+        c = 0
+        #coeff = (1.0/torch.sum(tnuX)).type(dtype)
+        #coeff = torch.tensor(1.0).type(dtype)
         temptime = time.time()
         LX_i = LazyTensor(tX[:,None,:])
         LX_j = LazyTensor(tX[None,:,:])
@@ -251,8 +306,8 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             # z operation is still assumed to be the same (mixed distribution of labels)
             LZ_i, LZ_j = Vi(tZal_Z[0:3*len_Z].view(-1,3)), Vj(tZal_Z[0:3*len_Z].view(-1,3))
     
-            Lnu_Z_i= Vi(tZal_Z[3*len_Z::].view(-1,dim_nu_Z)**2)
-            Lnu_Z_j= Vj(tZal_Z[3*len_Z::].view(-1,dim_nu_Z)**2)
+            Lnu_Z_i= Vi(((1.0/pTilde[3*len_Z:])*tZal_Z[3*len_Z::]).view(-1,dim_nu_Z)**2)
+            Lnu_Z_j= Vj(((1.0/pTilde[3*len_Z:])*tZal_Z[3*len_Z::]).view(-1,dim_nu_Z)**2)
             for si in range(len(sig)):
                 sigg = torch.tensor(sig[si]).type(dtype)
                 DZZ_ij = ((LZ_i - LZ_j)**2/sigg**2).sum(dim=2)  
@@ -285,9 +340,10 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             return L.detach(),c.detach()
         return loss 
     
-    def make_loss2(tX, tnuX, tZ, dim_nu_Z, rangesXX_ij, rangesZZ_ij, rangesZX_ij):
+    def make_loss2(tX, tnuX, tZ, dim_nu_Z, rangesXX_ij, rangesZZ_ij, rangesZX_ij,pTilde,coeff):
         c = 0
-        coeff = (1.0/torch.sum(tnuX)).type(dtype)
+        #coeff = (1.0/torch.sum(tnuX)).type(dtype)
+        #coeff = torch.tensor(1.0).type(dtype)
         LX_i = LazyTensor(tX[:,None,:])
         LX_j = LazyTensor(tX[None,:,:])
         
@@ -329,7 +385,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             
             for si in range(len(sig)):
                 sigg = torch.tensor(sig[si]).type(dtype)
-                DZX_ij = ((LZ_i - LX_j)**2/sig**2).sum(dim=2) 
+                DZX_ij = ((LZ_i - LX_j)**2/sigg**2).sum(dim=2) 
                 KZX_ijs = (- DZX_ij).exp() 
                 if si == 0:
                     KZX_ij = KZX_ijs
@@ -344,7 +400,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             return L.detach(),c.detach()
 
         def loss(tal_Z): 
-            Lnu_Z_i, Lnu_Z_j = Vi(tal_Z.view(-1,dim_nu_Z)**2), Vj(tal_Z.view(-1,dim_nu_Z)**2)
+            Lnu_Z_i, Lnu_Z_j = Vi(((1.0/pTilde)*tal_Z).view(-1,dim_nu_Z)**2), Vj(((1.0/pTilde)*tal_Z).view(-1,dim_nu_Z)**2)
 
             PZZ_ij = (Lnu_Z_i*Lnu_Z_j).sum(dim=2)
             KPZZ_ij = KZZ_ij*PZZ_ij
@@ -427,6 +483,10 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
          
     tZ = torch.tensor(Z).type(dtype)
     tnu_Z = torch.tensor(nu_Z).type(dtype)
+    
+    pTilde0 = (1.0/torch.sum(tnu_Z,axis=-1)).type(dtype)
+    pTilde0 = pTilde0[...,None]*torch.ones_like(tnu_Z).type(dtype)
+    pTilde0 = pTilde0.flatten()
 
     # Computes ranges and labels for the grid
     print("Making ranges")
@@ -447,31 +507,41 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     tnu_X, _ = sort_clusters(tnu_X,X_labels)
     print("time for sorting Z is " + str(time.time() - temptime))
     len_Z, dim_nu_Z = nu_Z.shape
+    
+    coeff = getInitialLoss(tX,tnu_X,tZ,tnu_Z,rangesXX,rangesZZ,rangesZX)
+    coeff = 1.0/coeff
 
     # Optimization
     outerCost = []
-    def optimize(tZ, tnu_Z, nb_iter = 20, flag = 'all'):
+    def optimize(tZ, tnu_Z, nb_iter = 20, flag = 'all',coeff=torch.tensor(1.0).type(dtype)):
         if flag == 'all':
             temptime = time.time()
-            loss = make_loss(tX, tnu_X, len_Z, dim_nu_Z, rangesXX, rangesZZ, rangesZX)
-            print("time for making loss is " + str(time.time() - temptime))
             p0 = torch.cat((tZ.flatten(),tnu_Z.pow(0.5).flatten()),0).requires_grad_(True)
+            pTilde = torch.ones_like(p0).type(dtype)
+            #pTilde[3*len_Z:] = pTilde0
+            loss = make_loss(tX, tnu_X, len_Z, dim_nu_Z, rangesXX, rangesZZ, rangesZX,pTilde,coeff)
+            print("time for making loss is " + str(time.time() - temptime))
         else:
             temptime = time.time()
-            loss, finalLoss = make_loss2(tX, tnu_X, tZ, dim_nu_Z, rangesXX, rangesZZ, rangesZX)
-            print("time for making loss 2 is " + str(time.time() - temptime))
             p0 = tnu_Z.pow(0.5).flatten().clone().requires_grad_(True)
+            pTilde = torch.ones_like(p0).type(dtype)
+            #pTilde = pTilde0
+            print("p0 shape, ", p0.detach().shape)
+            print("pTilde shape, ", pTilde.shape)
+            print("pTilde0 shape, ", pTilde0.shape)
+            loss, finalLoss = make_loss2(tX, tnu_X, tZ, dim_nu_Z, rangesXX, rangesZZ, rangesZX,pTilde,coeff)
+            print("time for making loss 2 is " + str(time.time() - temptime))
 
         print('p0', p0.is_contiguous())
         if (optMethod == 'LBFGS'):
-            optimizer = torch.optim.LBFGS([p0], max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=3)
+            optimizer = torch.optim.LBFGS([p0], max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=3,tolerance_grad=1e-8,tolerance_change=1e-10)
         else:
             print("optimizing method is not supported. defaulting to LBFGS")
-            optimizer = torch.optim.LBFGS([p0], max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=3)
+            optimizer = torch.optim.LBFGS([p0], max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=3,tolerance_grad=1e-8,tolerance_change=1e-10)
         
         def closure():
             optimizer.zero_grad(set_to_none=True)
-            L,c = loss(p0)
+            L,c = loss(pTilde*p0)
             print("error is ", L.detach().cpu().numpy())
             print("relative error loss", L.detach().cpu().numpy()/c.detach().cpu().numpy())
             lossTrack.append(L.detach().cpu().numpy()/c.detach().cpu().numpy())
@@ -492,19 +562,19 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
 
         if flag == 'all':
             tnZ = p0[0:3*len_Z].detach().view(-1,3)
-            tnnu_Z = p0[3*len_Z::].detach().view(-1,dim_nu_Z)**2
+            tnnu_Z = ((1.0/pTilde[3*len_Z:])*p0[3*len_Z::].detach()).view(-1,dim_nu_Z)**2
             finalLoss = None
         else:
             tnZ = tZ
-            tnnu_Z = p0.detach().view(-1,dim_nu_Z)**2
+            tnnu_Z = ((1.0/pTilde)*p0.detach()).view(-1,dim_nu_Z)**2
         return tnZ, tnnu_Z, finalLoss
 
     print("Starting Optim")
     print("sum tnu_Z before", tnu_Z.sum())
-    tZ, tnu_Z, finalLoss = optimize(tZ, tnu_Z, nb_iter = nb_iter0, flag = '')
+    tZ, tnu_Z, finalLoss = optimize(tZ, tnu_Z, nb_iter = nb_iter0, flag = '',coeff=coeff)
     tnZ, tnnu_Z = tZ, tnu_Z
     torch.cuda.empty_cache()
-    tnZ, tnnu_Z,_ = optimize(tZ, tnu_Z, nb_iter = nb_iter1, flag = 'all')
+    tnZ, tnnu_Z,_ = optimize(tZ, tnu_Z, nb_iter = nb_iter1, flag = 'all',coeff=coeff)
     print("sum tnnu_Z after", tnnu_Z.sum())
 
     nZ = tnZ.detach().cpu().numpy()

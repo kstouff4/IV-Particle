@@ -25,7 +25,7 @@ from scipy import signal
 ##############################################################
 # Compute mRNA MI for detected transcripts
 
-def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None):
+def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=True):
     '''
     read in detected transcripts: global_x = 2, global_y = 3, global_z = 4, geneName = 8
     cSize = cube size (for building histograms)
@@ -34,10 +34,16 @@ def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None):
     '''
     if ('npz' in detectedTransCSV):
         info = np.load(detectedTransCSV) # assume in the form of X and nu_X
-        coords = info['X'][:,0:2] # only take x and y 
-        ugenes,inv = np.unique(info['nu_X'],return_inverse=True)
-        invOneHot = np.zeros((inv.shape[0],len(ugenes)), dtype=np.bool8)
-        invOneHot[np.arange(inv.shape[0]),inv] = 1
+        coords = info[info.files[0]][:,0:2] # only take x and y
+        if feat is None:
+            feat = 'nu_X'
+        if makeOneHot:
+            ugenes,inv = np.unique(info[feat],return_inverse=True)
+            invOneHot = np.zeros((inv.shape[0],len(ugenes)), dtype=np.bool8)
+            invOneHot[np.arange(inv.shape[0]),inv] = 1
+        else:
+            invOneHot = info[feat] # do not convert to one-hot (assume already in this)
+            inv = np.argmax(info[feat],axis=-1)
     # 3D Allen MERFISH Data
     elif meta is None:
         df = pd.read_csv(detectedTransCSV)
@@ -172,6 +178,7 @@ def convolveHalfPlane(cubeFile,mSize,axC=0):
     '''
     info = np.load(cubeFile)
     bins = info['bins']
+    print("size of bins: ", bins.shape)
     quants = len(np.unique(bins))
     mWin0 = np.zeros((mSize,mSize,bins.shape[-1]))
     mWin1 = np.zeros((mSize,mSize,bins.shape[-1]))
@@ -207,6 +214,7 @@ def convolveHalfPlane(cubeFile,mSize,axC=0):
         MI += Px1[q]*np.log(Px1[q]*r1,where=(Px1[q]*r1 > 0))
     
     J = np.sum(MI,axis=(0,1))
+    print("size of J: ", J.shape)
     np.savez(cubeFile.replace('.npz','_msize' + str(mSize) + '_ax' + str(axC) + '_MI.npz'),J=J,MI=MI)
     f,ax = plt.subplots(2,1)
     ax[0].bar(np.arange(bins.shape[-1]),np.squeeze(J))
@@ -278,7 +286,7 @@ def convolveHalfPlane(cubeFile,mSize,axC=0):
 
     return
 
-def wholeBrainMI(dirName,saveName):
+def wholeBrainMI(dirName,saveName,featNameMat=None):
     '''
     Give directory where you have stored the cube counts (e.g. /cis/home/kstouff4/Documents/SpatialTranscriptomics/Mouse/Mouse1_20220506/zipfiles1/*/)
     '''

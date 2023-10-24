@@ -31,6 +31,7 @@ def main():
     info = np.load(filsX[0])
     Xt = info['Z']
     X = Xt - np.mean(Xt,axis=0) # center all data 
+    X[:,-1] = np.mean(info['Z'],axis=0)[-1]
     nuX = info['nu_Z']
     
     
@@ -38,6 +39,7 @@ def main():
         info = np.load(filsX[f])
         Xt = info['Z']
         Xt = Xt - np.mean(Xt,axis=0)
+        Xt[:,-1] = np.mean(info['Z'],axis=0)[-1]
         X = np.vstack((X,Xt))
         nuX = np.vstack((nuX,info['nu_Z']))
     np.savez(xInter + 'allSlicesCentered.npz',X=X,nu_X=nuX)

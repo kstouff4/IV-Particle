@@ -10,17 +10,23 @@ from varap.io.writeOut import writeParticleVTK
 
 import numpy as np
 import torch 
+import glob
 
 dtype = torch.cuda.FloatTensor
 torch.set_default_tensor_type(dtype)
+
+dataDir = sys.argv[1]
 
 # fpath = '/content/drive/My Drive/Kaitlin/'
 fpathO = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
 fpath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.1_dimEff2/initialHighLowAll.pkl'
 opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/top28MI/sig0.2/'
 
-fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25/Genes/initialHighLowAllGenes_top16.pkl'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25Align_100um/AllGenes/'
+fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Half_Brain_D079/sig0.25Align_HighRes/Whole/initialHighLowAllCells_nu_R.pkl'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Half_Brain_D079/sig0.25Align_200um/Whole/'
+
+fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/0.25/initialHighLowAllCells_nu_R.pkl'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/approx/0.1/'
 
 os.makedirs(opath,exist_ok=True)
 
@@ -35,6 +41,21 @@ a = BarSeqCellLoader(fpath,[0.0,0.0,0.200])
 # Define loss functions
 numFiles = a.getNumberOfFiles()
 print("number of files optimizing: ", numFiles)
+
+def combineFiles(filepath):
+    fils = glob.glob(filepath + '*optimal_all.npz')
+    info = np.load(fils[0])
+    X = info[info.files[0]]
+    nu_X = info[info.files[1]]
+    
+    for i in range(1,len(fils)):
+        info = np.load(fils[i])
+        X = np.vstack((X,info[info.files[0]]))
+        nu_X = np.vstack((nu_X,info[info.files[1]]))
+    
+    np.savez(filepath + 'allCombined_optimal_all.npz',X=X,nu_X=nu_X)
+    writeParticleVTK(filepath + 'allCombined_optimal_all.npz')
+    return
 
 def optimizeFunc(HZi,Hnu_Zi,LZi,Lnu_Zi,outfile):
     ranges = ParticleLoss_ranges(sig, HZi, Hnu_Zi, LZi, Lnu_Zi)
@@ -114,8 +135,11 @@ if optimizeAll:
     outfile = 'all_optimal'
     optimizeFunc(HZ,Hnu_Z,LZ,Lnu_Z,outfile)
 else:
+    '''
     for f in range(numFiles):
         nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(f)
+        print(np.unique(nHZ[:,-1]))
+        print(np.unique(nLZ[:,-1]))
         HZ = torch.tensor(nHZ).type(dtype)
         Hnu_Z = torch.tensor(nHnu_Z).type(dtype)
         LZ = torch.tensor(nLZ).type(dtype)
@@ -123,4 +147,6 @@ else:
 
         outfile = a.getFilename_subsample(f).split('/')[-1].replace('.npz','_optimal')
         optimizeFunc(HZ,Hnu_Z,LZ,Lnu_Z,outfile)
+     '''
+    combineFiles(opath)
     

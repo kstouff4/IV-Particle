@@ -14,7 +14,9 @@ def main():
     '''
     transLoc = '/cis/home/kstouff4/Documents/SpatialTranscriptomics/Mouse/Mouse1_20220506/zipfiles1/'
     fils = glob.glob('/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZApprox_sig0.05Uniform/*Znu_ZAll*npz')
+    fils = glob.glob('/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX/*XnuX.npz')
     outDir = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/ZApprox_sig0.05Uniform_Aligned/'
+    outDir = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/AllenMerfish/XnuX_Aligned/'
     
     imageNames = ['MASS','MAXVAL_GENE','ENTROPY']
     
@@ -25,7 +27,8 @@ def main():
             print("No transformation file found for " + f)
             continue
         partApprox = np.load(f)
-        Z = partApprox['Z']
+        #Z = partApprox['Z']
+        Z = partApprox['X']
         trans = np.load(t[0])
         T = trans['T']/1000.0
         Ri = trans['Ri']
@@ -39,12 +42,15 @@ def main():
         Znew[:,-1] = Znew[:,-1]/1000.0
         
         fbase = f.split('/')[-1]
-        np.savez(outDir + fbase,Z=Znew,nu_Z=partApprox['nu_Z'],h=partApprox['h'])
-        mass = np.sum(partApprox['nu_Z'],axis=-1)
-        maxval = np.argmax(partApprox['nu_Z'],axis=-1)
-        ent = partApprox['h']
+        #np.savez(outDir + fbase,Z=Znew,nu_Z=partApprox['nu_Z'],h=partApprox['h'])
+        np.savez(outDir + fbase,X=Znew,nu_X=partApprox['nu_X'])
         
-        vtf.writeVTK(Znew,[mass,maxval,ent],imageNames,outDir+fbase.replace('npz','vtk'),polyData=None)
+        #mass = np.sum(partApprox['nu_Z'],axis=-1)
+        #maxval = np.argmax(partApprox['nu_Z'],axis=-1)
+        #ent = partApprox['h']
+        
+        #vtf.writeVTK(Znew,[mass,maxval,ent],imageNames,outDir+fbase.replace('npz','vtk'),polyData=None)
+        vtf.writeVTK(Znew,[partApprox['nu_X']],['geneInd'],outDir+fbase.replace('npz','vtk'),polyData=None)
         
 
 if __name__ == "__main__":

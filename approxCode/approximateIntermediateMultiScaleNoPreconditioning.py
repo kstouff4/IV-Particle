@@ -326,7 +326,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             
             for si in range(len(sig)):
                 sigg = torch.tensor(sig[si]).type(dtype)
-                DZX_ij = ((LZ_i - LX_j)**2/sig**2).sum(dim=2) 
+                DZX_ij = ((LZ_i - LX_j)**2/sigg**2).sum(dim=2) 
                 KZX_ijs = (- DZX_ij).exp() 
                 if si == 0:
                     KZX_ij = KZX_ijs

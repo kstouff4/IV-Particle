@@ -146,8 +146,8 @@ def getXinterZ(npzX,npzZ):
     Assume initial Z is already in one hot encoding for features
     '''
     xInfo = np.load(npzX)
-    X = xInfo['Z']
-    nuX = xInfo['nu_Z'] # assume both have same features
+    X = xInfo[xInfo.files[0]]
+    nuX = xInfo[xInfo.files[1]] # assume both have same features
 
     zInfo = np.load(npzZ)
     Z = zInfo['Z']

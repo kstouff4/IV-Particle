@@ -612,11 +612,13 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     
     # if want to rescale loss such taht is equal to 1 (normalizing should be same with and without bands)
     #coeff = getInitialLoss(tX,tnu_X,tZ,tnu_Z,rangesXX,rangesZZ,rangesZX)
-    #coeff = 1.0/coeff
+    coeff = torch.tensor(1.0).type(dtype)
 
     # Optimization
     outerCost = []
     nb_bands = int(nu_Z.shape[1]/bw)+1
+    if (nu_Z.shape[1] <= bw):
+        nb_bands = 1
     bands = [(i*bw, min((i+1)*bw,nu_Z.shape[1])) for i in range(nb_bands)] # define indices of bands in terms of feature dimensions
     def optimize(tZp, tnu_Zp, nb_iter = 20, flag = 'all',coeff=coeff):
         if flag == 'all':
@@ -625,23 +627,22 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             
             # loss bands
             losses = []
-            loss_onlys = []
             for b in range(nb_bands):
                 loss = make_loss(tX, tnu_X[:,bands[b][0]:bands[b][1]].contiguous(), len_Z, bands[b][1]-bands[b][0], rangesXX, rangesZZ, rangesZX,coeff=coeff)
                 losses.append(loss)
             print("time for making loss is " + str(time.time() - temptime))
             
             def uloss(xu):
-                slosses_L = loss[0]([xu[0],xu[1][:,bands[0][0]:bands[0][1]]])
+                slosses_L = losses[0]([xu[0],xu[1][:,bands[0][0]:bands[0][1]]])
                 for b in range(1,nb_bands):
-                    slosses_L += loss[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
+                    slosses_L += losses[b]([xu[0],xu[1][:,bands[b][0]:bands[b][1]]])
                 return slosses_L
             def nuloss(xu):
                 beta = uloss(xinit)
                 return uloss(xu)/beta
             # rescale the loss according to how much you are expecting the variables to change by computing the gradient with respect to the variables
             loss_new, uvar_from_optvar, xopt = rescale_loss(nuloss,xinit,[torch.tensor(sig[0]).type(dtype),torch.clone(xinit[-1].mean()).detach().type(dtype)])
-            optimizer = torch.optim.LBFGS(xopt, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=5,tolerance_grad=1e-8,tolerance_change=1e-10)
+            optimizer = torch.optim.LBFGS(xopt, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=10,tolerance_grad=1e-8,tolerance_change=1e-10)
         else:
             temptime = time.time()
             xinit = [torch.clone(tnu_Zp.pow(0.5)).detach()]
@@ -656,7 +657,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             def uloss2(xu):
                 sloss_onlys2_L = losses2[0]([xu[0][:,bands[0][0]:bands[0][1]]])
                 for b in range(1,nb_bands):
-                    sloss_onlys2_L += loss_onlys2[b]([xu[0][:,bands[b][0]:bands[b][1]]])
+                    sloss_onlys2_L += losses2[b]([xu[0][:,bands[b][0]:bands[b][1]]])
                 return sloss_onlys2_L
             def nuloss2(xu):
                 beta = uloss2(xinit)
@@ -664,7 +665,7 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             
             loss_new2, uvar_from_optvar2, xopt2 = rescale_loss(nuloss2,xinit,[torch.clone(xinit[0].mean()).detach().type(dtype)])
 
-            optimizer = torch.optim.LBFGS(xopt2, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=5,tolerance_grad=1e-8,tolerance_change=1e-10)
+            optimizer = torch.optim.LBFGS(xopt2, max_eval=10, max_iter=10, line_search_fn = 'strong_wolfe',history_size=10,tolerance_grad=1e-8,tolerance_change=1e-10)
         
         
         def closure():
@@ -672,23 +673,23 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
             if flag == 'all':
                 L = loss_new(xopt)
                 L.backward()
-                print("xopt")
-                for o in xopt:
-                    print(o.detach().cpu().numpy())
+                #print("xopt")
+                #for o in xopt:
+                #    print(o.detach().cpu().numpy())
                 xuser = uvar_from_optvar(xopt)
             else:
                 L = loss_new2(xopt2)
                 L.backward()
-                print("xopt2")
-                for o in xopt2:
-                    print(o.detach().cpu().numpy())
+                #print("xopt2")
+                #for o in xopt2:
+                #    print(o.detach().cpu().numpy())
                 xuser = uvar_from_optvar2(xopt2)
             
             print("error is ", L.detach().cpu().numpy())
             lossTrack.append(L.detach().cpu().numpy())
-            print("alpha: ")
-            for o in xuser:
-                print(o.detach().cpu().numpy())
+            #print("alpha: ")
+            #for o in xuser:
+            #    print(o.detach().cpu().numpy())
             #tot.backward()
             return L
 
@@ -735,10 +736,11 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
     np.savez(outpath+'_optimalZnu_ZwC' + str(C) + '_sig' + str(sig) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) + '_distances.npz',Z=Z,nZ=nZ,nu_Z=nu_Z,nnu_Z=nnu_Z,distMove=distMove,distAlt=distAlt)
     
     fig,ax = plt.subplots()
-    ax.plot(np.arange(len(outerCost)),outerCost)
+    ax.plot(np.arange(len(outerCost)),outerCost,label="Final Cost = " + str(outerCost[-1]))
     ax.set_title('Outer iterations Cost')
     ax.set_xlabel('Outer Step Iterations')
     ax.set_ylabel('Total Loss')
+    ax.legend()
     fig.savefig(outpath+'_optimalZcost_sig' + str(sig) + '_C' + str(C) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) + '_OUTER_ONLY.png',dpi=300)
     
     bigMove = distMove > np.quantile(distMove,0.75)
@@ -768,9 +770,10 @@ def project3D(Xfile, sigma, nb_iter0, nb_iter1,outpath,Nmax=2000.0,Npart=50000.0
 
     # remove to see if release memory 
     f,ax = plt.subplots()
-    ax.plot(np.arange(len(lossTrack)),np.asarray(lossTrack))
+    ax.plot(np.arange(len(lossTrack)),np.asarray(lossTrack),label="Final Cost = " + str(lossTrack[-1]))
     ax.set_xlabel('iterations')
     ax.set_ylabel('cost')
+    ax.legend()
     f.savefig(outpath+ '_optimalZcost_sig' + str(sig) + '_C' + str(C) + '_Nmax' + str(Nmax) + '_Npart' + str(Npart) + '.png',dpi=300)
     
     return nZ, nnu_Z
