@@ -74,10 +74,10 @@ elif [[ $2 == 'barseq' ]]; then
 elif [[ $2 == 'barseqHalf' ]]; then
     echo "computing barseq Half Brain"
     fp="/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/$3/0.25/"
-    fils=$(find $fp | grep cellSlice_ | grep genes | grep npz)
+    fils=$(find $fp | grep cellSlice_ | grep genes.npz)
     if [[ $1 == 1 ]]; then
         for f in ${fils[*]}; do
-            python3 -c "import mrnaMI as mm; mm.singleMI('$f',$cSize,$mSize,$k,feat='nu_M');quit()"
+            python3 -c "import mrnaMI as mm; mm.singleMI('$f',$cSize,$mSize,$k,feat='nu_M',minAll=[-5.5,-5.5],maxCubes=[230,230],totGenes=114);quit()"
         done
     elif [[ $1 == 2 ]]; then
         fils=$(find $fp | grep cSize${cSize}_k${k}.npz)
@@ -88,7 +88,7 @@ elif [[ $2 == 'barseqHalf' ]]; then
     elif [[ $1 == 3 ]]; then
         sd="/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/$3/0.25/MI_ResultsCellGenes/"
         mkdir $sd
-        python3 -c "import mrnaMI as mm; mm.wholeBrainMI('$fp','$sd');quit()"
+        python3 -c "import mrnaMI as mm; mm.wholeBrainMI('$fp','$sd',unit=1);quit()"
     fi
 fi
 

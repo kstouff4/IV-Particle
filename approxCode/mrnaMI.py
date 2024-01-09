@@ -25,7 +25,7 @@ from scipy import signal
 ##############################################################
 # Compute mRNA MI for detected transcripts
 
-def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=True,minAll=None,maxCubes=None):
+def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=True,minAll=None,maxCubes=None,totGenes=None):
     '''
     read in detected transcripts: global_x = 2, global_y = 3, global_z = 4, geneName = 8
     cSize = cube size (for building histograms)
@@ -38,9 +38,15 @@ def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=Tru
         if feat is None:
             feat = 'nu_X'
         if makeOneHot:
-            ugenes,inv = np.unique(info[feat],return_inverse=True)
-            invOneHot = np.zeros((inv.shape[0],len(ugenes)), dtype=np.bool8)
-            invOneHot[np.arange(inv.shape[0]),inv] = 1
+            if totGenes is not None:
+                invOneHot = np.zeros((coords.shape[0],totGenes),dtype=np.bool8)
+                invOneHot[np.arange(coords.shape[0]),info[feat].astype(int)-1] = 1
+                ugenes = np.arange(totGenes)
+                inv = info[feat] - 1
+            else:
+                ugenes,inv = np.unique(info[feat],return_inverse=True)
+                invOneHot = np.zeros((inv.shape[0],len(ugenes)), dtype=np.bool8)
+                invOneHot[np.arange(inv.shape[0]),inv] = 1
         else:
             invOneHot = info[feat] # do not convert to one-hot (assume already in this)
             inv = np.argmax(info[feat],axis=-1)
@@ -83,15 +89,18 @@ def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=Tru
         coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/cSize).astype(int) # minimum number of cubes in x and y 
     if maxCubes is not None:
         totCubes = maxCubes[0]*maxCubes[1]
+        maxC = [maxCubes[0],maxCubes[1]]
+        
     else:
         totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1)
+        maxC = [np.max(coords_labels[:,0])+1,np.max(coords_labels[:,1])+1]
     
     if minAll is not None:
-        xC = np.arange(np.max(coords_labels[:,0])+1)*cSize + np.floor(minAll[0]) + cSize/2.0
-        yC = np.arange(np.max(coords_labels[:,1])+1)*cSize + np.floor(minAll[1]) + cSize/2.0
+        xC = np.arange(maxC[0])*cSize + np.floor(minAll[0]) + cSize/2.0
+        yC = np.arange(maxC[1])*cSize + np.floor(minAll[1]) + cSize/2.0
     else:
-        xC = np.arange(np.max(coords_labels[:,0])+1)*cSize + np.floor(np.min(coords[:,0])) + cSize/2.0
-        yC = np.arange(np.max(coords_labels[:,1])+1)*cSize + np.floor(np.min(coords[:,1])) + cSize/2.0
+        xC = np.arange(maxC[0])*cSize + np.floor(np.min(coords[:,0])) + cSize/2.0
+        yC = np.arange(maxC[1])*cSize + np.floor(np.min(coords[:,1])) + cSize/2.0
     XC,YC = np.meshgrid(xC,yC,indexing='ij')
     cubes_centroids = np.stack((XC,YC),axis=-1)
     cubes_indices = np.reshape(np.arange(totCubes),(cubes_centroids.shape[0],cubes_centroids.shape[1]))
@@ -296,7 +305,7 @@ def convolveHalfPlane(cubeFile,mSize,axC=0):
 
     return
 
-def wholeBrainMI(dirName,saveName,featNameMat=None):
+def wholeBrainMI(dirName,saveName,featNameMat=None,unit=-2):
     '''
     Give directory where you have stored the cube counts (e.g. /cis/home/kstouff4/Documents/SpatialTranscriptomics/Mouse/Mouse1_20220506/zipfiles1/*/)
     '''
@@ -317,7 +326,10 @@ def wholeBrainMI(dirName,saveName,featNameMat=None):
     slNames = []
     Js.append(J)
     indSort = np.argsort(J)
-    p = ax0_fils[0].split('/')[-2]
+    if unit > 0:
+        p = str(0)
+    else:
+        p = ax0_fils[0].split('/')[unit]
     slNames.append(p)
     f,ax = plt.subplots(figsize=(16,8))
     ax.bar(np.arange(len(J)),J[indSort])
@@ -333,7 +345,10 @@ def wholeBrainMI(dirName,saveName,featNameMat=None):
         J = J0+J1
         Js.append(J)
         indSort = np.argsort(J)
-        p = ax0_fils[i].split('/')[-2]
+        if unit > 0:
+            p = str(i)
+        else:
+            p = ax0_fils[i].split('/')[unit]
         f,ax = plt.subplots(figsize=(16,8))
         ax.bar(np.arange(len(J)),J[indSort])
         ax.set_xticks(list(np.arange(len(J))))
@@ -351,7 +366,8 @@ def wholeBrainMI(dirName,saveName,featNameMat=None):
     indSort = np.argsort(Jtot)
     f,ax = plt.subplots(figsize=(16,8))
     ax.bar(np.arange(len(Jtot)),Jtot[indSort])
-    ax.set_xticklabels(list(indSort))
+    ax.set_xticks(list(np.arange(len(Jtot))))
+    ax.set_xticklabels(list(indSort),rotation='vertical',fontsize='x-small')
     f.savefig(saveName+'all_MI_nobound_histo.png',dpi=300)
 
     return
