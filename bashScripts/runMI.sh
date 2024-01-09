@@ -68,8 +68,34 @@ elif [[ $2 == 'barseq' ]]; then
         sd='/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25/Genes/MI_ResultsCellGenes/'
         mkdir $sd
         python3 -c "import mrnaMI as mm; mm.wholeBrainMI('$fp','$sd');quit()"
+    fi 
+
+# Barseq half brain uses max expressed gene
+elif [[ $2 == 'barseqHalf' ]]; then
+    echo "computing barseq Half Brain"
+    fp="/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/$3/0.25/"
+    fils=$(find $fp | grep cellSlice_ | grep genes | grep npz)
+    if [[ $1 == 1 ]]; then
+        for f in ${fils[*]}; do
+            python3 -c "import mrnaMI as mm; mm.singleMI('$f',$cSize,$mSize,$k,feat='nu_M');quit()"
+        done
+    elif [[ $1 == 2 ]]; then
+        fils=$(find $fp | grep cSize${cSize}_k${k}.npz)
+        for f in ${fils[*]}; do
+            echo $f
+            python3 -c "import mrnaMI as mm; mm.convolveHalfPlane('$f',$mSize,axC=0);mm.convolveHalfPlane('$f',$mSize,axC=1);quit()"
+        done
+    elif [[ $1 == 3 ]]; then
+        sd="/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/$3/0.25/MI_ResultsCellGenes/"
+        mkdir $sd
+        python3 -c "import mrnaMI as mm; mm.wholeBrainMI('$fp','$sd');quit()"
     fi
-fi    
+fi
+
+    
+
+
+    
       
 # copy all files from ax0 and ax1 into same folder to look at them collectively 
 

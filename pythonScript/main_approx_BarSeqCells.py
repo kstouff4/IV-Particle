@@ -25,13 +25,14 @@ opath = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeqAligned/t
 fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Half_Brain_D079/sig0.25Align_HighRes/Whole/initialHighLowAllCells_nu_R.pkl'
 opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Half_Brain_D079/sig0.25Align_200um/Whole/'
 
-fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/0.25/initialHighLowAllCells_nu_R.pkl'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/approx/0.1/'
+sig = 0.2
+
+fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/0.25/sig' + str(sig) + '_initialHighLowAllCells_nu_R.pkl'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/approx/' + str(sig) + '/'
 
 os.makedirs(opath,exist_ok=True)
 
 bw = 10
-sig = 0.1
 optimizeAll = False
 
 a = BarSeqCellLoader(fpath,[0.0,0.0,0.200])
@@ -135,7 +136,6 @@ if optimizeAll:
     outfile = 'all_optimal'
     optimizeFunc(HZ,Hnu_Z,LZ,Lnu_Z,outfile)
 else:
-    '''
     for f in range(numFiles):
         nHZ,nHnu_Z,nLZ,nLnu_Z = a.getHighLowPair(f)
         print(np.unique(nHZ[:,-1]))
@@ -147,6 +147,5 @@ else:
 
         outfile = a.getFilename_subsample(f).split('/')[-1].replace('.npz','_optimal')
         optimizeFunc(HZ,Hnu_Z,LZ,Lnu_Z,outfile)
-     '''
     combineFiles(opath)
     

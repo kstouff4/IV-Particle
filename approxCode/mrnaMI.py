@@ -25,7 +25,7 @@ from scipy import signal
 ##############################################################
 # Compute mRNA MI for detected transcripts
 
-def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=True):
+def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=True,minAll=None,maxCubes=None):
     '''
     read in detected transcripts: global_x = 2, global_y = 3, global_z = 4, geneName = 8
     cSize = cube size (for building histograms)
@@ -77,11 +77,21 @@ def singleMI(detectedTransCSV,cSize,mSize,k=4,meta=None,feat=None,makeOneHot=Tru
         
     
     # divide mRNA coords and features into cubes based on location and given size 
+    if minAll is not None:
+        coords_labels = np.floor((coords - np.floor(minAll))/cSize).astype(int)
+    else:
+        coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/cSize).astype(int) # minimum number of cubes in x and y 
+    if maxCubes is not None:
+        totCubes = maxCubes[0]*maxCubes[1]
+    else:
+        totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1)
     
-    coords_labels = np.floor((coords - np.floor(np.min(coords,axis=0)))/cSize).astype(int) # minimum number of cubes in x and y 
-    totCubes = (np.max(coords_labels[:,0])+1)*(np.max(coords_labels[:,1])+1)
-    xC = np.arange(np.max(coords_labels[:,0])+1)*cSize + np.floor(np.min(coords[:,0])) + cSize/2.0
-    yC = np.arange(np.max(coords_labels[:,1])+1)*cSize + np.floor(np.min(coords[:,1])) + cSize/2.0
+    if minAll is not None:
+        xC = np.arange(np.max(coords_labels[:,0])+1)*cSize + np.floor(minAll[0]) + cSize/2.0
+        yC = np.arange(np.max(coords_labels[:,1])+1)*cSize + np.floor(minAll[1]) + cSize/2.0
+    else:
+        xC = np.arange(np.max(coords_labels[:,0])+1)*cSize + np.floor(np.min(coords[:,0])) + cSize/2.0
+        yC = np.arange(np.max(coords_labels[:,1])+1)*cSize + np.floor(np.min(coords[:,1])) + cSize/2.0
     XC,YC = np.meshgrid(xC,yC,indexing='ij')
     cubes_centroids = np.stack((XC,YC),axis=-1)
     cubes_indices = np.reshape(np.arange(totCubes),(cubes_centroids.shape[0],cubes_centroids.shape[1]))
