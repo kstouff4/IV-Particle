@@ -16,6 +16,10 @@ dtype = torch.cuda.FloatTensor
 torch.set_default_tensor_type(dtype)
 
 dataDir = sys.argv[1]
+if len(sys.argv) > 2:
+    suff = sys.argv[2]
+else:
+    suff = ''
 
 # fpath = '/content/drive/My Drive/Kaitlin/'
 fpathO = '/cis/home/kstouff4/Documents/MeshRegistration/Particles/BarSeq/top28MI/sig0.025/subsampledObject.pkl'
@@ -28,7 +32,7 @@ opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/S
 sig = 0.2
 
 fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/0.25/sig' + str(sig) + '_initialHighLowAllCells_nu_R.pkl'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/approx/' + str(sig) + '/'
+opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/approx' + suff + '/' + str(sig) + '/'
 
 os.makedirs(opath,exist_ok=True)
 
