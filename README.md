@@ -11,6 +11,6 @@ Algorithm Components:
 
 
 Authors:
-Kaitlin Stouffer (kstouff4@jhmi.edu)
-Alain Trouvé
+Kaitlin Stouffer (kstouff4@jhmi.edu),
+Alain Trouvé,
 Benjamin Charlier
