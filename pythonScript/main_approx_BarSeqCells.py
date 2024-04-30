@@ -31,8 +31,14 @@ opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/S
 
 sig = 0.2
 
-fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/0.25/sig' + str(sig) + '_initialHighLowAllCells_nu_R.pkl'
-opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/approx' + suff + '/' + str(sig) + '/'
+if 'D0' in dataDir:
+    fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/0.25/sig' + str(sig) + '_initialHighLowAllCells_nu_R.pkl'
+    opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeq/HalfBrains/' + dataDir + '/approx' + suff + '/' + str(sig) + '/'
+
+else:
+    sig = float(dataDir)
+    fpath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25/Cells/initialHighLowAll_' + dataDir + '.pkl'
+    opath = '/cis/home/kstouff4/Documents/MeshRegistration/ParticleLDDMMQP/sandbox/SliceToSlice/BarSeqAligned/Whole_Brain_2023/sig0.25_Align' + dataDir + '/'
 
 os.makedirs(opath,exist_ok=True)
 
